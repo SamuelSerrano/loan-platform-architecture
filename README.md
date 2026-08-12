@@ -10,8 +10,12 @@ The platform demonstrates a low-value unsecured personal-loan journey with progr
 
 ## Current status
 
-**Discovery baseline:** 0.2 complete  
-**Domain design:** in progress  
+**Discovery baseline:** 0.2 complete
+
+**Domain documentation baseline:** complete
+
+**Architecture baseline:** in progress
+
 **Implementation:** not started
 
 The next milestone is to formalize the architecture baseline before creating shared contracts and service repositories.
@@ -28,7 +32,10 @@ The next milestone is to formalize the architecture baseline before creating sha
 ### Domain
 
 - [Ubiquitous language](docs/domain/UBIQUITOUS_LANGUAGE.md)
-- [Bounded context map and Event Storming](docs/domain/BOUNDED_CONTEXTS_AND_EVENT_STORMING.md)
+- [Bounded context map](docs/domain/BOUNDED_CONTEXTS_AND_EVENT_STORMING.md)
+- [Canonical business rules](docs/domain/BUSINESS_RULES.md)
+- [Canonical domain and integration events](docs/domain/DOMAIN_EVENTS.md)
+- [Canonical Event Storming model](docs/domain/EVENT_STORMING.md)
 - [Product and credit policy](docs/domain/PRODUCT_AND_CREDIT_POLICY.md)
 - [Formal credit decision table](docs/domain/CREDIT_DECISION_TABLE.md)
 - [Credit Decisioning bounded-context design](docs/domain/CREDIT_DECISIONING_DESIGN.md)
@@ -53,11 +60,10 @@ Planned repositories include:
 
 ## Delivery sequence
 
-1. Complete the domain baseline.
-2. Formalize system architecture, data ownership, security, workflows, and ADRs.
-3. Publish versioned integration contracts.
-4. Create each service repository from an approved specification.
-5. Implement vertical slices with Spec-Driven Development and TDD.
+1. Formalize system architecture, data ownership, security, workflows, and ADRs on top of the completed domain documentation baseline.
+2. Publish versioned integration contracts.
+3. Create each service repository from an approved specification.
+4. Implement vertical slices with Spec-Driven Development and TDD.
 
 ## Important notice
 
