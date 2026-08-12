@@ -1,8 +1,11 @@
 # Domain Documentation Baseline Design
 
-**Issue:** [#1 Complete domain documentation baseline](https://github.com/SamuelSerrano/loan-platform-architecture/issues/1)  
-**Status:** Approved design  
-**Date:** 2026-08-12  
+**Issue:** [#1 Complete domain documentation baseline](https://github.com/SamuelSerrano/loan-platform-architecture/issues/1)
+
+**Status:** Approved design
+
+**Date:** 2026-08-12
+
 **Canonical language:** English
 
 ## 1. Objective

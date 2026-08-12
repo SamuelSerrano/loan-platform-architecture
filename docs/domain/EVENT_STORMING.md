@@ -120,12 +120,12 @@ OTP and notification facts remain private. No cross-context `IE-CO-*` contract i
 
 ## 10. Cross-cutting policies
 
-| Policy | Trigger | Required behavior | Governing rule |
-| --- | --- | --- | --- |
-| POL-XS-002 `StagePublicFactAtomically` | A producer commits a public business fact | Persist aggregate change and Outbox record in the same local transaction | [BR-XS-003](BUSINESS_RULES.md#12-cross-cutting-xs) |
-| POL-XS-003 `MinimizePublicPayload` | A domain fact maps to an integration event | Publish only allowlisted identifiers and minimum snapshots; exclude secrets and protected evidence | [BR-XS-002](BUSINESS_RULES.md#12-cross-cutting-xs) |
-| POL-XS-004 `ProjectAuditAsynchronously` | A sanitized business or security fact is available | Append to Audit Trail without making audit a synchronous workflow dependency | [BR-XS-005](BUSINESS_RULES.md#12-cross-cutting-xs) |
-| POL-XS-005 `CompensateExplicitly` | A completed cross-context action requires recovery | Issue an owned, traceable business command rather than simulate distributed rollback | [BR-XS-006](BUSINESS_RULES.md#12-cross-cutting-xs) |
+| Policy | Status | Trigger | Required behavior | Governing rule |
+| --- | --- | --- | --- | --- |
+| POL-XS-002 `StagePublicFactAtomically` | Confirmed | A producer commits a public business fact | Persist aggregate change and Outbox record in the same local transaction | [BR-XS-003](BUSINESS_RULES.md#12-cross-cutting-xs) |
+| POL-XS-003 `MinimizePublicPayload` | Confirmed | A domain fact maps to an integration event | Publish only allowlisted identifiers and minimum snapshots; exclude secrets and protected evidence | [BR-XS-002](BUSINESS_RULES.md#12-cross-cutting-xs) |
+| POL-XS-004 `ProjectAuditAsynchronously` | Confirmed | A sanitized business or security fact is available | Append to Audit Trail without making audit a synchronous workflow dependency | [BR-XS-005](BUSINESS_RULES.md#12-cross-cutting-xs) |
+| POL-XS-005 `CompensateExplicitly` | Confirmed | A completed cross-context action requires recovery | Issue an owned, traceable business command rather than simulate distributed rollback | [BR-XS-006](BUSINESS_RULES.md#12-cross-cutting-xs) |
 
 ## 11. Hotspots
 
