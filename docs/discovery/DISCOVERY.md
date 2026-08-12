@@ -2,7 +2,7 @@
 
 **Status:** Baseline 0.2
 
-**Last updated:** 2026-08-06
+**Last updated:** 2026-08-12
 
 **Owner repository:** `loan-platform-architecture`
 
@@ -53,11 +53,14 @@ Audit is a cross-cutting event consumer, not a synchronous dependency or a ninth
 
 The canonical domain sources are:
 
-- [Bounded Context Map and Event Storming](../domain/BOUNDED_CONTEXTS_AND_EVENT_STORMING.md)
-- [Ubiquitous Language](../domain/UBIQUITOUS_LANGUAGE.md)
-- [Product and Credit Policy](../domain/PRODUCT_AND_CREDIT_POLICY.md)
-- [Formal Credit Decision Table](../domain/CREDIT_DECISION_TABLE.md)
-- [Credit Decisioning Design](../domain/CREDIT_DECISIONING_DESIGN.md)
+- [Bounded Context Map](../domain/BOUNDED_CONTEXTS_AND_EVENT_STORMING.md) — canonical classification, ownership, relationships, repository boundaries, and executive journey view.
+- [Business Rules](../domain/BUSINESS_RULES.md) — canonical transversal catalog of business rules and aggregate invariants.
+- [Domain Events](../domain/DOMAIN_EVENTS.md) — canonical semantic catalog of private domain events and public integration events.
+- [Event Storming](../domain/EVENT_STORMING.md) — canonical operational model of commands, policies, paths, recovery, hotspots, and open questions.
+- [Ubiquitous Language](../domain/UBIQUITOUS_LANGUAGE.md) — canonical domain terminology.
+- [Product and Credit Policy](../domain/PRODUCT_AND_CREDIT_POLICY.md) — canonical product, calculation, eligibility, and pricing policy.
+- [Formal Credit Decision Table](../domain/CREDIT_DECISION_TABLE.md) — canonical rule ordering, outcomes, reason codes, and scenarios.
+- [Credit Decisioning Design](../domain/CREDIT_DECISIONING_DESIGN.md) — canonical internal design of the Credit Decisioning context.
 
 ## Confirmed solution direction
 
@@ -86,15 +89,14 @@ Signed document package
 
 ## Current position
 
-Product discovery is baselined and domain discovery is advanced. Credit Decisioning has a formal policy, decision table, and internal bounded-context design. The next repository-level work is the cross-cutting architecture baseline, followed by platform contracts and the first walking skeleton.
+Product discovery and the transversal domain documentation baseline are complete. Credit Decisioning has a formal policy, decision table, and internal bounded-context design. Architecture, executable contracts, and runtime implementation remain future work. The next repository-level work is the cross-cutting architecture baseline, followed by platform contracts and the first walking skeleton.
 
 ## Next deliverables
 
-1. Create `BUSINESS_RULES.md` and `DOMAIN_EVENTS.md` as cross-context indexes.
-2. Produce system context, container view, component catalog, data ownership, and security model.
-3. Formalize the initial architecture decisions as ADRs.
-4. Create the platform `README.md` and implementation roadmap.
-5. Design the first versioned Credit Decisioning contracts.
+1. Produce system context, container view, component catalog, data ownership, and security model.
+2. Formalize the initial architecture decisions as ADRs.
+3. Create the implementation roadmap.
+4. Design the first versioned Credit Decisioning contracts.
 
 ## Governance
 
