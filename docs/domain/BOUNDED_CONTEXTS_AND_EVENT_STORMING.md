@@ -133,6 +133,22 @@ The ownership table identifies the proposed aggregate roots. Their consistency b
 
 Detailed invariants, inputs, outcomes, and source traceability are canonical in [Business Rules](BUSINESS_RULES.md). Credit Decisioning formulas and matrices remain in its specialized policy and decision documents.
 
+### `CreditApplication`
+
+Application Process owns one coarse onboarding lifecycle per application. It advances only from complete submission data and consent references, and it stores identifiers or permitted immutable snapshots instead of foreign mutable entities.
+
+### `DocumentPackage` and `SignatureEnvelope`
+
+Document Preparation binds each package version to one accepted-offer snapshot and template set. Electronic Signature binds its envelope and evidence to the exact approved package; corrected or superseded content requires a new package/envelope path, and OTP validation alone is not a signature.
+
+### `OtpChallenge`
+
+Communications owns a single-use, expiring challenge bound to its signer, purpose, and envelope. Only a protected representation is persisted; secrets do not enter logs or events.
+
+### `LoanAccount` and `DisbursementOrder`
+
+Loan Booking permits at most one active account per application and keeps reservations non-active until matching funds are confirmed. Disbursement permits at most one successful transfer per reservation and preserves one stable business identity across retries.
+
 ## 9. Coarse process state
 
 ```mermaid

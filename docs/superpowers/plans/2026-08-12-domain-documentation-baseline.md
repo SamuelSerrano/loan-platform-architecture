@@ -221,7 +221,7 @@ Run: `git add README.md docs/discovery/DISCOVERY.md docs/domain/BOUNDED_CONTEXTS
 - Consumes: all deliverables.
 - Produces: evidence for links, IDs, metadata, terminology, scope, and Git hygiene.
 
-- [ ] **Step 1: Validate relative links**
+- [ ] **Step 1: Validate relative links and GitHub-style anchors**
 
 Run:
 
@@ -230,6 +230,16 @@ ruby -E UTF-8:UTF-8 -e 'broken=[]; Dir.glob("**/*.md").sort.each{|f| File.read(f
 ```
 
 Expected: `All relative Markdown links resolve.`
+
+Then validate every relative fragment against the target document's GitHub-style heading slug, including duplicate-heading suffixes. The check must fail for a missing file or missing anchor and print each unresolved source and target.
+
+Run:
+
+```bash
+ruby -E UTF-8:UTF-8 -e 'files=Dir.glob("**/*.md").sort; anchors={}; files.each{|f| counts=Hash.new(0); known={}; File.foreach(f,encoding:"UTF-8"){|line| next unless line=~/^ {0,3}\#{1,6}\s+(.+?)\s*\#*\s*$/; slug=$1.downcase.gsub(/<[^>]*>/,"").gsub(/[^\p{L}\p{N}\s_-]/u,"").strip.gsub(/\s/,"-"); suffix=counts[slug]; counts[slug]+=1; slug="#{slug}-#{suffix}" if suffix>0; known[slug]=true}; anchors[f]=known}; broken=[]; files.each{|f| File.read(f,encoding:"UTF-8").scan(/!?\[[^\]]*\]\(([^)]+)\)/).flatten.each{|raw| target=raw.strip.sub(/\A</,"").sub(/>\z/,""); next if target=~/\A(?:https?:|mailto:)/; path,fragment=target.split("#",2); resolved=path.nil?||path.empty? ? f : File.expand_path(path,File.dirname(f)).sub(%r{\A#{Regexp.escape(Dir.pwd)}/},""); unless File.exist?(resolved); broken << "#{f}: #{target} (missing file)"; next; end; broken << "#{f}: #{target} (missing anchor)" if fragment&&!fragment.empty?&&!anchors[resolved]&.key?(fragment.downcase)}}; abort broken.join("\n") unless broken.empty?; puts "All relative Markdown paths and GitHub-style heading anchors resolve."'
+```
+
+Expected: all relative Markdown paths and heading anchors resolve.
 
 - [ ] **Step 2: Validate IDs globally**
 

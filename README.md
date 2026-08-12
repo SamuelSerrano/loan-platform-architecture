@@ -60,11 +60,10 @@ Planned repositories include:
 
 ## Delivery sequence
 
-1. Complete the domain baseline.
-2. Formalize system architecture, data ownership, security, workflows, and ADRs.
-3. Publish versioned integration contracts.
-4. Create each service repository from an approved specification.
-5. Implement vertical slices with Spec-Driven Development and TDD.
+1. Formalize system architecture, data ownership, security, workflows, and ADRs on top of the completed domain documentation baseline.
+2. Publish versioned integration contracts.
+3. Create each service repository from an approved specification.
+4. Implement vertical slices with Spec-Driven Development and TDD.
 
 ## Important notice
 
