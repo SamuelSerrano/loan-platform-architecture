@@ -48,6 +48,13 @@ The next milestone is to formalize the architecture baseline before creating sha
 - [Data ownership](docs/architecture/DATA_OWNERSHIP.md)
 - [Platform security model](docs/architecture/SECURITY_MODEL.md)
 
+### Workflows
+
+- [Loan onboarding master workflow](docs/workflows/LOAN_ONBOARDING.md)
+- [Credit decision workflow](docs/workflows/CREDIT_DECISION.md)
+- [Document signing workflow](docs/workflows/DOCUMENT_SIGNING.md)
+- [Disbursement workflow](docs/workflows/DISBURSEMENT.md)
+
 ## Repository strategy
 
 This platform follows a multi-repository strategy. New repositories are created only after their boundaries and contracts are validated here.
