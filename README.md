@@ -48,6 +48,13 @@ The next milestone is to formalize the architecture baseline before creating sha
 - [Data ownership](docs/architecture/DATA_OWNERSHIP.md)
 - [Platform security model](docs/architecture/SECURITY_MODEL.md)
 
+### Architecture decision records
+
+- [ADR-001 — Controlled Multi-Repository Delivery Model](docs/adr/ADR-001-MULTI-REPOSITORY.md)
+- [ADR-002 — .NET 10 and Serverless AWS Demo Architecture](docs/adr/ADR-002-SERVERLESS-AWS.md)
+- [ADR-003 — Event-Driven Communication and Persisted Application Process Saga](docs/adr/ADR-003-EVENT-DRIVEN.md)
+- [ADR-004 — Database per Service and Data Isolation](docs/adr/ADR-004-DATABASE-PER-SERVICE.md)
+
 ### Workflows
 
 - [Loan onboarding master workflow](docs/workflows/LOAN_ONBOARDING.md)

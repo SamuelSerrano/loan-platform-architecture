@@ -6,7 +6,7 @@ This workflow defines the logical, financially safe sequence from a valid Signed
 
 ## 2. Scope and non-goals
 
-It covers ordering, failures, ambiguity, idempotency, DLQ handling, and permitted manual recovery. It does not define provider protocols, persistence/IAM, numeric retry budgets, reservation cancellation/release, automatic reversal, post-failure business disposition, or new events.
+It covers ordering, failures, ambiguity, idempotency, DLQ handling, and permitted manual recovery. The end-to-end journey uses the persisted Application Process process manager only for coarse cross-context progression. Each capability owns its internal workflow, policies, decisions, and recovery, as established by [ADR-003](../adr/ADR-003-EVENT-DRIVEN.md). It does not define provider protocols, persistence schema/scheduler technology/IAM, numeric retry budgets or timers, reservation cancellation/release, automatic reversal, post-failure business disposition, or new events.
 
 ## 3. Trigger
 
@@ -116,7 +116,6 @@ Use tokenized destination references and safe provider references. Events/logs/t
 ## 13. Open questions
 
 - `Q-004`: exact contract fields.
-- `Q-005`: logical choreography versus persisted saga steps/timers.
 - `Q-007`: first-installment date and repayment-schedule rounding.
 - `Q-008`: applicant-safe failure messaging.
 - `HS-006`: no approved private event name for activation failure.
