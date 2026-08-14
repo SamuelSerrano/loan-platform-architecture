@@ -93,7 +93,7 @@ The mandatory order is `Signed Package -> Loan Reservation (PendingDisbursement)
 | Offer rejected/expired | AP / CD | Record explicit rejection or prevent expired acceptance | Mutate immutable offer or generate documents | Stable applicant action; clock fact idempotent | `OfferClosed` | Explicit reassessment/new-offer path | Proposed | [Alternate paths](../domain/EVENT_STORMING.md#9-alternate-and-recovery-paths) |
 | Authorized cancellation before signing | AP | `CreditApplicationCancelled` under `BR-AP-004` | Cancel after signing through same path | Unique cancellation operation | `CreditApplicationCancelled` | Later boundary needs separate governed workflow | Confirmed | [DE-AP-006](../domain/DOMAIN_EVENTS.md#41-application-process-ap) |
 | Document/signature problem | DP / CO / ES | Correction, reissue, or new envelope through owner | Overwrite package, reset challenge, manufacture signature | Preserve package/envelope/challenge identities | `DocumentsPending`, `SignaturePending`, or `SignatureBlocked` | Owner-controlled recovery | Derived | [Document Signing](DOCUMENT_SIGNING.md) |
-| Transfer/activation problem | DS / LB | Retry, reconcile, isolate, or owner-controlled manual recovery | Decline, activate, cancel reservation, or reverse funds silently | Stable order/key; idempotent activation | `DisbursementPending`, `DisbursementFailed`, or `ActivationPending` | `CMD-XS-002 RequestManualRecovery` | Confirmed | [Disbursement](DISBURSEMENT.md) |
+| Transfer/activation problem | DS / LB | Retry, reconcile, isolate, or owner-controlled manual recovery | Decline, activate, cancel reservation, or reverse funds silently | Stable order/key; idempotent activation | `DisbursementPending`, `DisbursementFailed`, or `ActivationPending` | `CMD-XS-002 RequestManualRecovery` | Proposed | [Disbursement](DISBURSEMENT.md) |
 
 ## 8. Timeouts and expiry
 
@@ -112,7 +112,7 @@ Compensation is an explicit context-owned business command under `POL-XS-005 Com
 | Class | Outcomes |
 | --- | --- |
 | Terminal business | `CreditApplicationCompleted`, completed `Unfavorable` / `CreditDeclined`, `IdentityRejected`, explicit `OfferClosed`, offer expiry requiring a governed path, authorized pre-signing `CreditApplicationCancelled` |
-| Operational pending | `IdentityPending`, `DecisionPending`, `DocumentsPending`, `SignaturePending`, `DisbursementPending` |
+| Operational pending | `IdentityPending`, `DecisionPending`, `DocumentsPending`, `SignaturePending`, `BookingPending`, `DisbursementPending` |
 | Operational exception/blocked | `OperationalException`, `SignatureBlocked`, `DisbursementFailed`, critical `ActivationPending` |
 | Infrastructure | Retry scheduled, duplicate/out-of-order delivery, DLQ/redrive pending, provider timeout/ambiguity; none is a credit decision |
 
