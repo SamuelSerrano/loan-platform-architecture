@@ -4,11 +4,11 @@
 
 This document is the canonical master workflow for the Loan Onboarding Platform. It connects the five journey phases without replacing the [business rules](../domain/BUSINESS_RULES.md), [event catalog](../domain/DOMAIN_EVENTS.md), [Event Storming model](../domain/EVENT_STORMING.md), [data ownership](../architecture/DATA_OWNERSHIP.md), or [Security Model](../architecture/SECURITY_MODEL.md). Specialized detail belongs in [Credit Decision](CREDIT_DECISION.md), [Document Signing](DOCUMENT_SIGNING.md), and [Disbursement](DISBURSEMENT.md).
 
-The workflow is logical and hosting-independent. It does not select saga persistence, publish contracts, or imply that planned services are implemented.
+The workflow is logical and hosting-independent. [ADR-003](../adr/ADR-003-EVENT-DRIVEN.md) establishes a persisted Application Process process manager for coarse coordination; it does not publish contracts or imply that planned services are implemented.
 
 ## 2. Scope and non-goals
 
-In scope: application start through activated loan and application completion, capability ownership, logical reactions, alternate outcomes, recovery, correlation, and idempotency. Out of scope: persistence topology (`Q-005`), executable schemas and field allowlists (`Q-004`), provider configuration, infrastructure, numeric retry/timer defaults, and production policy.
+In scope: application start through activated loan and application completion, capability ownership, logical reactions, alternate outcomes, recovery, correlation, and idempotency. Out of scope: the process-manager persistence schema, scheduler technology, executable schemas and field allowlists (`Q-004`), provider configuration, infrastructure, numeric retry/timer defaults, and production policy.
 
 The workflow is hosting-independent. `Local Zero AWS Cost` requires no AWS account or credentials and uses fictitious data, deterministic fakes, and owner-scoped adapters without bypassing boundaries. The ephemeral, Free-Tier-aware `AWS Demo` initially deploys only the approved walking skeleton and uses Cognito, EventBridge, consumer-specific SQS/DLQ, owner-scoped persistence, and optional protected S3 objects as defined by the [Container Architecture](../architecture/CONTAINER_DIAGRAM.md); it does not claim zero cost or production readiness. Both profiles preserve the same authorization, idempotency, retry, recovery, minimization, audit, retention, and verified-cleanup semantics.
 
@@ -97,7 +97,7 @@ The mandatory order is `Signed Package -> Loan Reservation (PendingDisbursement)
 
 ## 8. Timeouts and expiry
 
-Identity validity across reassessment remains `Q-006`. Offer expiry is owned by Credit Decisioning and prevents acceptance. Package correction invalidates obsolete signing material. Communications owns OTP expiry; Electronic Signature owns envelope expiry. Provider timeouts remain operational. Numeric workflow timers, backoff, and retry budgets are deferred to specifications/ADRs.
+Identity validity across reassessment remains `Q-006`. Offer expiry is owned by Credit Decisioning and prevents acceptance. Package correction invalidates obsolete signing material. Communications owns OTP expiry; Electronic Signature owns envelope expiry. Provider timeouts remain operational. Application Process persists workflow deadlines and timer metadata and receives idempotent due checks through a replaceable scheduling port; exact scheduler technology, schemas, and numeric timers remain deferred to service/IaC specifications under [ADR-003](../adr/ADR-003-EVENT-DRIVEN.md).
 
 ## 9. Retry and idempotency
 
@@ -123,7 +123,6 @@ Apply the [Security Model](../architecture/SECURITY_MODEL.md): authorize every a
 ## 13. Open questions
 
 - `Q-004`: exact contract field allowlists.
-- `Q-005`: choreography-only policies versus persisted saga steps/timers; this workflow selects neither.
 - `Q-006`: identity validity and renewal across reassessment.
 - `Q-007`: exact first-installment date and schedule rounding.
 - `Q-008`: applicant-safe reason-code allowlist/translation.

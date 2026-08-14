@@ -6,7 +6,7 @@ This workflow defines the logical sequence from an accepted active offer through
 
 ## 2. Scope and non-goals
 
-It covers Document Preparation, Communications, and Electronic Signature ownership and their recovery paths. It does not choose providers, define legal signature classes, publish schemas, define field allowlists, or implement storage/transport.
+It covers Document Preparation, Communications, and Electronic Signature ownership and their recovery paths. Logical orchestration uses the persisted Application Process process manager established by [ADR-003](../adr/ADR-003-EVENT-DRIVEN.md). It does not choose providers, define legal signature classes, publish schemas, define field allowlists, or implement persistence schemas, scheduler technology, storage, or transport.
 
 ## 3. Trigger
 
@@ -102,7 +102,6 @@ Protected objects hold bytes; cross-context facts carry opaque references, packa
 ## 13. Open questions
 
 - `Q-004`: exact contract field allowlists.
-- `Q-005`: saga persistence topology.
 - `Q-008`: safe applicant-facing reason handling.
 - Provider-specific signature timeout/callback controls remain implementation decisions; no production legal-signature class is selected.
 

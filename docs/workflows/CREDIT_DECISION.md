@@ -6,7 +6,7 @@ This workflow describes the logical path from a valid identity result to a compl
 
 ## 2. Scope and non-goals
 
-It covers assessment dispositions, deterministic evaluation, offer lifecycle, acceptance/rejection, expiry, supersession, and reassessment. It does not define executable contracts, new rules, provider behavior, persistence, safe-reason allowlists, or numeric retry/timer defaults.
+It covers assessment dispositions, deterministic evaluation, offer lifecycle, acceptance/rejection, expiry, supersession, and reassessment. Logical orchestration uses the persisted Application Process process manager established by [ADR-003](../adr/ADR-003-EVENT-DRIVEN.md). It does not define executable contracts, new rules, provider behavior, persistence schemas, scheduler technology, safe-reason allowlists, or numeric retry/timer defaults.
 
 ## 3. Trigger
 
@@ -82,7 +82,6 @@ Public facts carry approved IDs, safe codes, policy versions, and minimum immuta
 ## 13. Open questions
 
 - `Q-004`: contract field allowlists.
-- `Q-005`: saga persistence choice.
 - `Q-006`: identity validity/renewal across reassessment.
 - `Q-008`: applicant-facing reason-code disclosure/translation.
 
