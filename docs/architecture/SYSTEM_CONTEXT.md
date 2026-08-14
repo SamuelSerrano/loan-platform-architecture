@@ -140,12 +140,12 @@ These are architecture constraints, not a complete security design.
 
 Changing profiles changes adapters and deployment configuration, not domain rules, integration-event meaning, or ownership boundaries.
 
-## 9. Known unresolved decisions
+## 9. Known decisions and unresolved decisions
 
 - `Q-001`: the client/UI shape is not selected. This context uses a neutral planned client boundary.
 - `Q-002`: AWS Region and account safeguards require a later ADR before deployment instructions are published.
 - `Q-003`: final operational and audit retention periods require later decisions; the demo must use short explicit values.
-- `HS-001`: offer acceptance and rejection ownership is inconsistent across legacy and current design sources. The platform therefore shows accepted-offer progression without assigning the disputed command or event. See [Event Storming hotspots](../domain/EVENT_STORMING.md#11-hotspots).
+- `HS-001` is confirmed and resolved as of 2026-08-14: Application Process owns the applicant's offer acceptance or explicit rejection and its idempotent journey record; Credit Decisioning retains ownership of the immutable `CreditOffer`, canonical terms, expiry, and supersession. See [Event Storming hotspots](../domain/EVENT_STORMING.md#11-hotspots).
 
 ## 10. Navigation
 
