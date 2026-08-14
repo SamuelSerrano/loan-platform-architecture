@@ -144,12 +144,14 @@ Changing profiles changes adapters and deployment configuration, not domain rule
 
 - `Q-001`: the client/UI shape is not selected. This context uses a neutral planned client boundary.
 - `Q-002`: AWS Region and account safeguards require a later ADR before deployment instructions are published.
-- `Q-003`: final operational and audit retention periods require later decisions; the demo must use short explicit values.
+- `Q-003` is resolved for AWS Demo: the approved maximum periods, deletion mechanisms, and mandatory verified teardown are defined in the [Platform Security Model](SECURITY_MODEL.md#10-aws-demo-retention-and-verified-deletion). Production retention remains deferred.
+- `Q-004` remains open: public event contracts still require field-by-field sensitive-data classification and allowlists.
 - `HS-001` is confirmed and resolved as of 2026-08-14: Application Process owns the applicant's offer acceptance or explicit rejection and its idempotent journey record; Credit Decisioning retains ownership of the immutable `CreditOffer`, canonical terms, expiry, and supersession. See [Event Storming hotspots](../domain/EVENT_STORMING.md#11-hotspots).
 
 ## 10. Navigation
 
 - [Container architecture](CONTAINER_DIAGRAM.md)
+- [Platform security model](SECURITY_MODEL.md)
 - [MVP scope](../discovery/SCOPE.md)
 - [Architecture assumptions and open questions](../discovery/ASSUMPTIONS.md)
 - [Bounded context map](../domain/BOUNDED_CONTEXTS_AND_EVENT_STORMING.md)

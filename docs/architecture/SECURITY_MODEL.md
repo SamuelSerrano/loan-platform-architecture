@@ -1,0 +1,181 @@
+# Platform Security Model
+
+## 1. Purpose and scope
+
+This document defines the security baseline for the Loan Onboarding Platform's `Local Zero AWS Cost` and ephemeral `AWS Demo` profiles. It covers identities, authorization, trust boundaries, data protection, event security, audit, retention, and verified teardown. It is an architecture policy, not a production security or regulatory claim.
+
+The [System Context](SYSTEM_CONTEXT.md), [Container Architecture](CONTAINER_DIAGRAM.md), [Component Catalog](COMPONENT_CATALOG.md), [Data Ownership](DATA_OWNERSHIP.md), [Ubiquitous Language](../domain/UBIQUITOUS_LANGUAGE.md), and [canonical Event Storming model](../domain/EVENT_STORMING.md) remain authoritative for their subjects. Future ADRs refine unresolved choices; contracts define executable field allowlists; IaC and runtime specifications enforce this baseline. They may not silently weaken it.
+
+**Lifecycle status:** `Confirmed` for the security principles and numeric `AWS Demo` retention policy in this document. Implementations remain `Planned`. Production identity, compliance, retention, and field-level event allowlists are `Deferred` or open as stated. This baseline is not evidence of regulatory compliance, legal approval, penetration testing, production readiness, or certification.
+
+## 2. Security objectives and invariants
+
+1. Authenticate every external actor and service interaction; authorize each operation independently of authentication.
+2. Apply least privilege to people, workloads, stores, queues, objects, logs, and provider adapters.
+3. Treat the client, event payloads, provider responses, and identifiers supplied across a boundary as untrusted input.
+4. Keep every bounded context authoritative for its own data and security decisions. No direct cross-context store access is permitted.
+5. Minimize sensitive data at collection, persistence, event, log, audit, queue, and provider boundaries.
+6. Never persist, log, emit, or audit plaintext OTP values, credentials, tokens, secrets, raw identity evidence, or unrestricted provider payloads.
+7. Preserve the canonical business sequence and outcomes. Authentication, provider, infrastructure, or security failures are operational conditions and never become credit outcomes.
+8. Make deletion and teardown observable and verifiable; scheduled expiration alone is not proof of deletion.
+
+## 3. Identity, authentication, and authorization
+
+| Identity | Authenticator / issuer | Allowed capabilities | Prohibited capabilities | Authorization boundary | Audit expectations | Profile | Status | Sources |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| Applicant | Amazon Cognito in AWS Demo | Commands and protected queries for the applicant's own journey; purpose-bound OTP/signature actions | Cross-customer access, internal traces, operator/admin actions, decision mutation | Public API resolves trusted subject ownership for every resource/action | Authentication result, denial, sensitive command, and safe target/correlation ID | AWS Demo | Confirmed | [System Context](SYSTEM_CONTEXT.md#5-external-systems) |
+| Credit Analyst | Separate workforce issuer to be selected | Read and act only on explicitly routed exceptional/manual-review cases | Rewrite automated outcomes, unrestricted portfolio access, direct store mutation | Owner-controlled analyst capabilities and case assignment | Case access, purpose, action, source versions, result | Local and AWS Demo | Proposed | [System Context actors](SYSTEM_CONTEXT.md#4-people-and-responsibilities) |
+| Product or Policy Administrator | Separate privileged workforce issuer with strong authentication, to be selected | Publish immutable versioned policy/configuration through a controlled capability | Direct database edits, secret reads by default, retroactive assessment changes | Dedicated policy-administration port and approval workflow | Publication/change actor, version, checksum, approval, result | Local and AWS Demo | Proposed | [Data Ownership](DATA_OWNERSHIP.md#32-credit-decisioning) |
+| Platform Operator | Separate privileged workforce issuer with strong authentication, to be selected | Observe sanitized operations; invoke owner-controlled retry, reconcile, quarantine, or redrive | Manufacture business success, change credit outcomes, edit queues/messages/stores directly | Operations ports with action- and context-scoped permissions | Privileged read, recovery command, DLQ access/redrive, before/after safe state | Local and AWS Demo | Confirmed | [System Context actors](SYSTEM_CONTEXT.md#4-people-and-responsibilities) |
+| Service/workload identity | Local scoped runtime identity; owner-scoped IAM role in AWS Demo | Own store, approved queues/routes/secrets, and required provider port | Read/write another service's persistence, publish arbitrary event types, share credentials | Per-service application port and resource policy | Authentication/authorization failure, privileged resource/secret access, publish/consume result | Local and AWS Demo | Confirmed | [Container rules](CONTAINER_DIAGRAM.md#2-architectural-rules) |
+| CI/CD deployment identity | Local developer authorization; future short-lived GitHub OIDC federation to AWS | Deploy/destroy only the selected environment and declared resources | Long-lived AWS keys, runtime business-data access, unapproved production deployment | Environment-scoped deployment role separated from runtime roles | Workflow/ref, actor, environment, plan/apply/destroy result, residual-resource check | AWS Demo deployment | Confirmed | [AWS Demo guardrails](CONTAINER_DIAGRAM.md#6-aws-demo--ephemeral-and-free-tier-aware) |
+| External provider identity | Provider certificate/endpoint and provider-specific credential behind owner adapter | Exchange the minimum provider contract with the owning context | Platform store access, domain authority, credential propagation into domain/events | Provider anti-corruption adapter with fixed endpoint and normalized port | Request safe reference, authentication/result, latency, ambiguity/reconciliation; no body | Local fake and AWS Demo adapter | Confirmed | [System Context providers](SYSTEM_CONTEXT.md#5-external-systems) |
+| Local deterministic test identity | Local test issuer/fixture; no AWS or real-provider credential | Exercise the same applicant, workforce, and service authorization boundaries with fictitious data | Bypass ownership checks, universal identity, production data/provider use | Local edge and service adapters preserve capability/resource checks | Deterministic authentication, authorization, command, and denial evidence | Local Zero AWS Cost | Confirmed | [Execution profiles](CONTAINER_DIAGRAM.md#5-execution-profile-mapping) |
+
+The Public API validates issuer, audience, signature, expiry, and required claims for AWS Demo tokens, then applies resource- and action-level authorization. Applicant ownership is resolved from a trusted subject-to-customer/application association, never from an unchecked request field. Workforce and machine identities are distinct from applicant identities. Authorization denials use safe responses and generate sanitized audit facts.
+
+## 4. Trust boundaries and threat surface
+
+| Boundary / surface | Assets | Threats | Preventive controls | Detective controls | Recovery | Residual decision | Status | Sources |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| Untrusted Client/UI -> Public API and Cognito | Tokens, applicant commands, protected query results | Token theft, broken object-level authorization, mass assignment, replay, injection, sensitive errors | TLS; signed token validation; trusted ownership lookup; command allowlists; schema/size/rate limits; idempotency; safe codes | Repeated authentication/authorization failure and abuse alerts; sanitized audit | Revoke/expire session, block abusive flow, retry only idempotent owner command | Final client shape and rate values remain open | Proposed | [System Context trust rules](SYSTEM_CONTEXT.md#7-trust-boundary-rules) |
+| Public API -> owner application ports and future synchronous service calls | Authority context, commands, owner data | Privilege escalation, confused deputy, client-supplied authoritative fields, cross-service access | Explicit ports; caller/purpose propagation; capability checks; no direct store calls; synchronous cross-context call requires ADR | Authorization-denial audit, dependency and port tests | Reject safely; correct caller/contract before retry | Final synchronous service contracts remain deferred | Proposed | [Container rules](CONTAINER_DIAGRAM.md#2-architectural-rules) |
+| Service/workload -> owned DynamoDB/store | Business records, Inbox/Outbox/idempotency | Credential leakage, cross-service reads/writes, unencrypted or over-retained data | Owner-scoped role/store; encryption; least privilege; TTL metadata; no shared schema | Denied-access alerts, policy/config inspection, expiry inventory | Disable role, rotate credential, reconcile owner data, explicit purge | Executable IAM policies require IaC | Confirmed | [Data isolation](DATA_OWNERSHIP.md#4-database-and-model-isolation) |
+| Producer -> EventBridge -> consumer SQS/DLQ | Integration facts and transport metadata | Unauthorized publish/consume, tampering/schema abuse, replay, duplicates/out-of-order, poison messages, unauthorized redrive, leakage | Producer/type and consumer/queue authorization; encryption; version/allowlist validation; event identity/causation; Inbox/Outbox; bounded retries; DLQ isolation | Schema/prohibited-field failures, duplicate/out-of-order metrics, backlog/DLQ growth and redrive audit | Quarantine poison message; correct cause; authorized redrive without editing fact; reconcile from owner | Field allowlists remain `Q-004` | Proposed | [Event governance](../domain/DOMAIN_EVENTS.md#7-governance) |
+| Protected S3/object storage | Identity/document/signature evidence, hashes, versions | Enumeration, unauthorized read, evidence substitution, stale version, incomplete deletion | Opaque refs; owner-scoped authorization; TLS/encryption; exact package/hash binding; version-aware lifecycle/deletion | Protected-read audit, hash mismatch alert, object/version inventory | Deny access, invalidate/supersede through owner flow, explicit version purge | Key and access-grant implementation require ADR/IaC | Confirmed | [Data Ownership](DATA_OWNERSHIP.md#6-sensitive-data-retention-and-audit) |
+| Owner service -> external provider adapter | Provider credential, request, normalized result | Provider spoofing, endpoint/certificate failure, credential leakage, malicious response, ambiguous outcome | Fixed non-sensitive endpoint config; TLS/certificate validation; secret isolation; schema/size validation; timeouts; anti-corruption normalization | Authentication/failure/latency metrics, ambiguity and reconciliation audit; no bodies | Stop side effect, query/reconcile ambiguity before retry, rotate credential | Production providers and callback mechanisms are deferred | Proposed | [System Context providers](SYSTEM_CONTEXT.md#5-external-systems) |
+| Audit & Compliance Projection / observability | Sanitized audit facts, logs, metrics, traces | PII/secret leakage, payload duplication, projection used as authority, high-cardinality exposure | Structured field allowlists, masking, safe IDs, no bodies, asynchronous sanitized ingestion, least privilege | Prohibited-field scan; access audit; backlog and ingestion-failure alerts | Restrict access, purge prohibited copy, repair projection from retained safe facts | Exact telemetry schemas remain implementation work | Proposed | [Data Ownership audit](DATA_OWNERSHIP.md#36-platform-audit-and-external-authorities) |
+| Operator/recovery access | Queues, DLQs, protected diagnostics, recovery operations | Privilege escalation, unauthorized inspection/redrive, message editing, direct data mutation, fabricated success | Separate role; owner-controlled recovery commands; read minimization; no queue/store editing | Privileged-read, suspicious-recovery, redrive and outcome audit/alerts | Revoke access, quarantine action, reconcile through owner command | Workforce issuer and approval workflow remain open | Proposed | [Recovery paths](../domain/EVENT_STORMING.md#9-alternate-and-recovery-paths) |
+| CI/CD -> AWS control plane and teardown | Deployment authority, infrastructure, residual data | Long-lived credentials, over-broad deployment, retained copies/resources, false-success destroy | Short-lived OIDC; environment-scoped role; manifest/tags; backups/exports/PITR disabled; explicit delete/verify | Deployment audit, drift/residual inventory, teardown failure alert | Re-run deletion, escalate any residual, keep teardown incomplete until absence verified | Exact deployment role/pipeline requires IaC | Confirmed | [AWS Demo](CONTAINER_DIAGRAM.md#6-aws-demo--ephemeral-and-free-tier-aware) |
+
+## 5. Encryption, secrets, and configuration
+
+- All external and provider traffic uses TLS. Internal transport uses the encryption capabilities of the selected local adapter or AWS managed service.
+- AWS Demo DynamoDB, S3, SQS, EventBridge where supported, and CloudWatch Logs use AWS-managed encryption at rest appropriate to the demo. Separately billed key infrastructure is avoided unless a later threat/risk decision justifies it. Encryption never replaces authorization, minimization, retention, or audit.
+- Provider credentials, signing secrets, connection material, and other secrets are supplied through environment-scoped secret/configuration mechanisms. They are never committed, embedded in images, returned to clients, placed in events, or copied to logs.
+- IAM roles are preferred to long-lived AWS access keys. Local development uses non-production, replaceable values and requires no AWS credentials for its default profile.
+- Configuration that changes business behavior is versioned and governed. Security-sensitive configuration fails closed when absent or invalid and is separated from ordinary application settings.
+- Sensitive endpoints and credentials are never hardcoded. Provider endpoints are validated non-secret configuration; local deterministic providers require no real provider credential.
+- Secret reads, privileged configuration changes, access-policy changes, and key lifecycle operations require auditable actor, target, time, and result metadata without recording the secret value.
+
+## 6. Data classification, minimization, and prohibited data
+
+| Data category | Classification | Authoritative owner | Permitted locations | Prohibited locations | Masking/tokenization | Event rule | Log/trace rule | Retention reference | Sources |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| Published architecture/product metadata | Public | Repository/product governance | Published documentation and approved public responses | None beyond integrity/version restrictions | Not required | Only if a business event needs its stable reference | May be recorded when useful | Repository history; process data if copied into demo runtime | [Repository scope](../discovery/SCOPE.md) |
+| Correlation and technical identifiers | Internal | Creating owner/platform boundary | Owner store, minimized events, queues, audit, safe telemetry | Public display unless intentionally safe; unrestricted external analytics | Opaque, non-semantic IDs; aggregation may raise sensitivity | Include only needed correlation/causation IDs | Allowlisted; never assume an ID is public | Source category or operational-record window | [Event governance](../domain/DOMAIN_EVENTS.md#7-governance) |
+| Customer PII and notification destinations | Confidential | Customer & Identity; Communications for delivery record | Owner stores and purpose-bound protected views | Unrestricted public events, metrics, traces, errors, DLQs beyond approved minimized event | Mask destinations; use customer/notification references | Minimum approved reference/snapshot only; `Q-004` allowlist required | Mask/redact; safe ID only | Applications/process data: 30 days | [Data Ownership](DATA_OWNERSHIP.md#31-application-process) |
+| Identity evidence | Restricted | Customer & Identity | Owner-scoped protected objects and metadata store | Events, queues/DLQs, logs, traces, audit bodies, client caches | Opaque evidence reference plus integrity metadata | Reference/result only; no raw evidence | Access result and safe ref only | Documents/evidence: 7 days | [Data Ownership](DATA_OWNERSHIP.md#32-customer--identity) |
+| Financial evidence, credit decisions, offer terms, internal rule traces | Confidential; unrestricted trace is Restricted | Credit Decisioning | CD-owned encrypted store; sanitized owner query | Public events/logs/errors containing unrestricted inputs, traces, rules, or provider detail | Safe bands/codes; immutable term hash/reference | Minimum outcome or approved immutable snapshot; no unrestricted trace | Safe outcome/code/version; no inputs or trace body | Applications/process data: 30 days | [Credit design](../domain/CREDIT_DECISIONING_DESIGN.md) |
+| Document artifacts and signature evidence | Restricted | Document Preparation; Electronic Signature | Owner-scoped protected objects/store | Events, queues/DLQs, logs, traces, audit bodies | Opaque ref, version, hash; masked signer ref | Package/evidence reference and integrity metadata only | Access/result and safe ref only | Documents/evidence: 7 days | [Data Ownership](DATA_OWNERSHIP.md#34-document-preparation-and-electronic-signature) |
+| OTP secret and protected representation | Restricted secret | Communications | Plaintext only in immediate transient validation/delivery boundary; protected representation in CO store | Plaintext at rest; all events, queues, DLQs, logs, traces, audit, metrics, analytics, errors | One-way protected representation; masked destination; opaque challenge ID | Authorization reference/result only; never OTP value/representation | Challenge ID, purpose, expiry, attempt/outcome only | Protected OTP: 24 hours after expiry/terminal completion | [Business rules](../domain/BUSINESS_RULES.md#9-communications-co) |
+| Disbursement destination token | Restricted | Disbursement | DS-owned store and provider adapter | Raw credentials in events, logs, traces, audit, other contexts | Tokenized/opaque destination reference | Safe reference/result only | Safe order/ref and normalized outcome only | Applications/process data: 30 days | [Data Ownership](DATA_OWNERSHIP.md#35-communications-loan-booking-and-disbursement) |
+| Provider credentials and raw payloads | Restricted secret | Respective provider; owning adapter for credential/reference | Approved secret store and transient adapter memory; minimum normalized owner snapshot | Domain models, events, queues/DLQs, logs, traces, audit bodies, source config, images | Secret reference; normalized safe provider reference | Never credentials/raw payload; normalized fact only | Authentication/result/latency without body | Secret deleted at teardown; normalized copy follows its data category | [System Context](SYSTEM_CONTEXT.md#7-trust-boundary-rules) |
+| Audit and operational metadata, Inbox/Outbox, DLQ payload | Internal; inherits highest payload classification | Source owner, Audit Projection, or transport boundary | Owner operational store, restricted queue/DLQ, sanitized audit store | Public response and unrestricted telemetry; DLQ does not permit fields forbidden in its event | Safe IDs, masked actor/target where required | DLQ contains only already-approved minimized event; audit ingests sanitized facts | Bounded allowlisted metadata, never payload dump | Audit 30 days; operations 7 days terminal; DLQ 4 days | [Data Ownership](DATA_OWNERSHIP.md#36-platform-audit-and-external-authorities) |
+
+Collect only fields required by a documented business rule, contract, security control, or audit purpose. Do not use production customer data in either demo profile. Mask contact destinations and account-like identifiers in displays and diagnostics. Use opaque IDs or tokens rather than identity evidence, document bodies, destination credentials, or provider-native payloads.
+
+The following are prohibited in integration events, DLQs, application logs, traces, and audit projections: plaintext OTP, passwords, bearer/access/refresh tokens, provider credentials, raw identity documents/evidence, document or signature bytes, raw disbursement credentials, unrestricted customer profiles, and unrestricted internal rule/provider payloads.
+
+`Q-004` remains open. The field-by-field allowlist and classification for each published contract must be approved during contract design; this document does not silently authorize any field.
+
+## 7. Integration-event and messaging security
+
+1. Only catalogued, versioned integration events cross context boundaries. Domain events remain private.
+2. Every public schema uses an explicit field allowlist, safe event and correlation identifiers, owner/source, schema version, and occurrence time. Consumers reject unsupported or malformed versions.
+3. Payloads contain the minimum immutable fact or opaque reference needed by known consumers. A new consumer does not inherit access to additional fields.
+4. Producer roles publish only approved event types; consumer roles receive only their queues. EventBridge, SQS, DLQs, Inbox, and Outbox are encrypted and access-controlled in AWS Demo.
+5. At-least-once delivery is handled with stable event IDs, idempotent consumers, Inbox/Outbox records, bounded retries, and controlled redrive. Replayed or duplicated messages cannot bypass current authorization or aggregate invariants.
+6. DLQs inherit payload classification, have operator-only controlled access, and are never a decision source. Inspection and redrive are audited.
+7. Contract validation and prohibited-field scans are release gates before a public event is published.
+
+Domain events are never published directly to EventBridge. AWS transport encryption and authorization protect the managed path; schema/version validation, trusted producer identity, immutable owner facts, and integrity references detect inappropriate or altered content at consumer and object boundaries. Consumers handle duplicates and out-of-order facts without editing queued business facts.
+
+## 8. OTP and electronic-signature controls
+
+Communications owns the complete `OtpChallenge` lifecycle: issuance, protected representation, purpose, destination reference, expiry, attempt count, blocking, validation, and deletion. OTP values are generated with a cryptographically secure mechanism, delivered through a provider adapter, compared through a protected representation, and never stored or observed in plaintext after the immediate request boundary.
+
+An OTP is bound to one applicant subject, application/journey, signer, purpose, Signature Envelope, and short validity window. Its validation authorizes exactly that signer/purpose/envelope; it does not sign the package. Attempts are enforced by Communications and rate-limited; successful use, expiry, terminal completion, or blocking prevents reuse. Reissue creates a new challenge and cannot reactivate an expired or blocked one. Logs and audit record only challenge ID, purpose, masked destination, timestamps, outcome, and safe reason.
+
+Electronic Signature owns the Signature Envelope and consumes only a short-lived, single-use, purpose-bound signing-authorization reference from Communications. It validates the exact approved document package version/hash and signer association before accepting a signature result. Corrected or superseded documents require a new valid package and envelope path. Signature evidence is held behind owner authorization in protected storage; events carry references and integrity metadata, not evidence bytes. Provider callbacks/results are authenticated where supported, validated, idempotently processed, and reconciled when ambiguous before retrying an irreversible operation.
+
+## 9. Observability, audit, and recovery
+
+- Application logs use structured safe identifiers, levels, and bounded messages. Request/response bodies and unrestricted event/provider payloads are not logged.
+- Metrics use low-cardinality, non-PII dimensions. Traces use correlation identifiers and sanitized attributes.
+- Audit records capture actor/workload, action, target safe ID, purpose/cause, source/version, time, correlation, and result. They do not duplicate secrets or raw protected data.
+- Security-relevant events include authentication/authorization failures, privileged reads, policy/configuration changes, secret access, provider reconciliation, DLQ inspection/redrive, and teardown execution.
+- Alerts cover repeated authorization failures, OTP abuse, DLQ growth, Outbox backlog, operational exceptions, suspicious recovery attempts, and incomplete teardown without including sensitive payloads.
+- Recovery operations retry, reconcile, or quarantine technical work through controlled commands. They cannot create business success, rewrite immutable facts, or convert technical failure into `Unfavorable`.
+- Access to logs, audit, queues, DLQs, objects, and operational views is least-privileged and itself auditable where the platform supports it.
+
+## 10. AWS Demo retention and verified deletion
+
+These are maximum periods for the ephemeral `AWS Demo`, not production policy. Earlier deletion is permitted. Destruction of the environment overrides every scheduled period and must explicitly delete and verify all data.
+
+| Category | Owner / responsible boundary | Retention start | Maximum | Scheduled mechanism | Explicit teardown action | Verification | Delayed deletion treatment | Production status | Sources |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| Applications and process data, including replicas/projections | Each authoritative business context; consuming projection owns its copy | Record creation; replica creation cannot extend the source maximum | 30 days | DynamoDB TTL or equivalent owner-scoped purge | Scan/delete all source and copied items and tables | No eligible items; tables absent; inventory contains no retained replica | Exclude expired items from reads; explicitly delete/recheck instead of waiting for TTL | Deferred | [DynamoDB TTL](https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/TTL.html), [Data Ownership](DATA_OWNERSHIP.md) |
+| Documents and identity/signature evidence | Customer & Identity, Document Preparation, Electronic Signature | Object/evidence creation or replacement | 7 days | S3 Lifecycle plus metadata TTL; equivalent local expiry | Delete current/noncurrent versions, delete markers, incomplete multipart uploads, metadata, and buckets | Version-aware inventory empty; buckets/resources absent | Lifecycle is asynchronous; teardown explicitly deletes and repeats inventory until absent | Deferred | [S3 Lifecycle](https://docs.aws.amazon.com/AmazonS3/latest/userguide/lifecycle-expire-general-considerations.html) |
+| Protected OTP records | Communications | OTP expiry, successful use, blocked state, or other terminal completion, whichever occurs first | 24 hours after start | DynamoDB TTL/equivalent; expired challenges excluded from reads immediately | Delete challenge records and containing store | No challenge record; store/resource absent | TTL delay never permits reuse/read; teardown explicitly deletes/rechecks | Deferred | [DynamoDB TTL](https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/TTL.html), [OTP rules](../domain/BUSINESS_RULES.md#9-communications-co) |
+| Application logs | Owning workload/platform logging boundary | Log event timestamp | 7 days | CloudWatch Logs retention set to 7 days; local rotation/deletion | Delete log groups explicitly | Log groups absent in inventory | Physical retention deletion can lag 72 hours or longer; explicit group deletion and absence check are recorded/rechecked | Deferred | [CloudWatch Logs](https://docs.aws.amazon.com/AmazonCloudWatch/latest/logs/Working-with-log-groups-and-streams.html) |
+| Audit records | Audit & Compliance Projection; source owner for local security audit | Audit fact creation | 30 days | DynamoDB TTL/equivalent owner purge | Delete audit items, checkpoints, and stores | No audit/checkpoint records; resources absent | Exclude expired facts; explicitly delete/recheck rather than wait for TTL | Deferred | [DynamoDB TTL](https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/TTL.html), [Audit ownership](DATA_OWNERSHIP.md#36-platform-audit-and-external-authorities) |
+| Inbox, Outbox, and idempotency records | Each producer/consumer | Terminal publish, handler, or idempotency state | 7 days after terminal state | TTL/equivalent purge; non-terminal records are investigated | Delete records and stores after retaining only sanitized teardown result | No operational records/stores remain | Exclude expired terminal records; explicit teardown covers pending and terminal copies | Deferred | [Cross-cutting rules](../domain/BUSINESS_RULES.md#12-cross-cutting-xs) |
+| DLQ messages | Transport/consumer operations | Message enqueue time in DLQ | 4 days | SQS message retention explicitly set to 4 days; local expiry | Purge/delete every DLQ and source queue | Queue inventory empty; queue resources absent | Scheduled retention is not proof; teardown purges, deletes, and rechecks | Deferred | [SQS quotas](https://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/quotas-messages.html) |
+| Backups, exports, snapshots, PITR, and retained/recovery copies | Platform deployment boundary | Not applicable | Disabled | DynamoDB PITR/backups/exports, retained snapshots, S3 Object Lock/replication/archive copies are not enabled | Assert none exist before/after deleting data resources | Zero backups, exports, recovery points, replicas, snapshots, locked copies | Any asynchronously deleting recovery artifact remains a teardown failure until absent | Deferred | [AWS Demo guardrails](CONTAINER_DIAGRAM.md#6-aws-demo--ephemeral-and-free-tier-aware) |
+| Complete environment, including Cognito demo identities and secrets | Platform Operator/deployment automation | Approved teardown invocation | Immediate teardown initiation; verified absence required | Not delegated to TTL/Lifecycle | Stop writes; purge queues; delete all item/object versions/copies, stores, logs, Cognito identities, secrets/config, and infrastructure | Tag/manifest and service-specific negative checks show no demo data resources | Record provider delay and recheck; any residual means teardown is incomplete | Not defined | [Teardown procedure](#102-teardown-verification-procedure) |
+
+### 10.1 Delayed deletion semantics
+
+- DynamoDB TTL is asynchronous: expired items can remain visible until the background process deletes them. Reads must exclude expired items, and teardown must explicitly delete and verify them. See [DynamoDB TTL](https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/TTL.html).
+- S3 Lifecycle queues eligible objects for expiration and is not a teardown mechanism. Versioned buckets can retain noncurrent versions and delete markers; incomplete multipart uploads require separate handling. Teardown enumerates and permanently deletes every version, marker, and multipart upload. See [S3 Lifecycle](https://docs.aws.amazon.com/AmazonS3/latest/userguide/lifecycle-expire-general-considerations.html).
+- CloudWatch Logs supports a 7-day retention setting, but physical deletion typically lags by up to 72 hours and can take longer. Teardown deletes log groups and records the service delay without representing scheduled expiry as immediate proof. See [CloudWatch Logs](https://docs.aws.amazon.com/AmazonCloudWatch/latest/logs/Working-with-log-groups-and-streams.html).
+- SQS message retention supports 1 minute through 14 days and defaults to 4 days. AWS Demo sets every DLQ explicitly to 4 days; teardown purges and deletes it. See [SQS queue quotas](https://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/quotas-messages.html).
+
+### 10.2 Teardown verification procedure
+
+1. Block new writes and record the environment identifier, Region, start time, and operator/workload identity.
+2. Enumerate tagged and manifest-declared resources before deletion; fail if an unclassified data resource or retained copy exists.
+3. Purge queues and delete DLQs/source queues. Enumerate and permanently delete all S3 object versions, delete markers, and incomplete multipart uploads.
+4. Explicitly delete DynamoDB items/tables, Cognito demo identities, log groups, secrets/config values, event infrastructure, and remaining environment resources.
+5. Query DynamoDB backup/PITR/export, S3 version/replication/Object Lock, backup/recovery-point, queue, log-group, identity, secret, and tagged-resource inventories.
+6. Record only sanitized resource identifiers, checks performed, timestamps, results, and known AWS asynchronous-deletion caveats. Any residual resource makes teardown incomplete and requires retry/escalation.
+
+This complete matrix and procedure resolve `Q-003` for AWS Demo. Production retention remains `Deferred` and requires legal, regulatory, operational, recovery, and jurisdiction-specific approval.
+
+## 11. Execution-profile application
+
+### Local Zero AWS Cost
+
+- Uses fictitious data and requires no AWS account or credentials.
+- Preserves the same identity separation, authorization checks, ownership boundaries, minimization, event controls, expiry metadata, deletion behavior, and teardown verification through local adapters.
+- Local convenience may co-locate processes but cannot create a shared domain model, shared schema, or universal credential.
+- Local cleanup is explicit, reproducible, and verifies that owner stores, objects, queues, logs, and identities contain no remaining fixture data.
+
+### AWS Demo
+
+- Uses managed services with owner-scoped IAM roles, encryption, explicit retention configuration, and the verified teardown procedure above.
+- Exists only for a bounded demonstration and contains no production data. Backups, exports, PITR, replication, Object Lock, and retained snapshots are disabled.
+- Free-Tier awareness does not weaken security, deletion, audit, or ownership controls and is not a guarantee of zero cost.
+- The profile introduces no persistent-cost infrastructure by default and initially represents only the walking skeleton as deployable. See the [Container Architecture cost model](CONTAINER_DIAGRAM.md#7-cost-model-and-governance) rather than duplicating it here.
+
+### Production
+
+Production is out of scope. This document must not be presented as production policy. Production requires dedicated threat modelling, jurisdictional/privacy review, workforce identity design, incident response, key management, recovery objectives, vendor assessment, retention policy, and contract field allowlists.
+
+## 12. Open decisions and implementation gates
+
+- `Q-004` remains open until every public contract has a field-by-field sensitive-data classification and allowlist.
+- `Q-001` remains open for the client/UI shape; its eventual design must implement these authorization and presentation controls.
+- `Q-002` remains open for AWS Region and account safeguards.
+- Workforce identity provider, cryptographic key strategy, rate-limit values, alert thresholds, incident-response process, and production controls require later ADRs or implementation specifications.
+- Before deployment, tests and infrastructure checks must prove access isolation, encryption, explicit retention, disabled retained copies, prohibited-field absence, idempotency/replay behavior, and complete teardown.
+
+## 13. Navigation
+
+- [System Context](SYSTEM_CONTEXT.md)
+- [Container Architecture](CONTAINER_DIAGRAM.md)
+- [Data Ownership](DATA_OWNERSHIP.md)
+- [Assumptions and Open Questions](../discovery/ASSUMPTIONS.md)
+- [Domain and Integration Events](../domain/DOMAIN_EVENTS.md)
+- [Canonical Event Storming Model](../domain/EVENT_STORMING.md)
