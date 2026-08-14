@@ -184,7 +184,7 @@ Guardrails:
 
 - Keep payloads small, Lambda memory/time and reserved-concurrency limits low but functional, log levels conservative, and high-cardinality fields out of metrics.
 - Do not enable verbose logging, unnecessary distributed tracing, cross-Region replication, or optional paid data features by default.
-- Apply explicit expiry or retention to transient records, objects, queues, DLQs, and logs where supported and consistent with unresolved `Q-003`.
+- Apply the explicit AWS Demo maxima, deletion mechanisms, and verified teardown controls in the [Platform Security Model](SECURITY_MODEL.md#10-aws-demo-retention-and-verified-deletion). Scheduled expiry never replaces teardown.
 - Deploy for a bounded demonstration window, exercise it, export only required evidence, then destroy resources and verify deletion and billing state.
 - Tag supported resources with `project`, `environment`, `owner`, `managedBy`, and `expiresAt`.
 
@@ -247,6 +247,7 @@ Pricing and eligibility must be revalidated before a public deployment guide is 
 
 - [System context](SYSTEM_CONTEXT.md)
 - [Architecture assumptions and open questions](../discovery/ASSUMPTIONS.md)
+- [Platform security model](SECURITY_MODEL.md)
 - [Bounded context map](../domain/BOUNDED_CONTEXTS_AND_EVENT_STORMING.md)
 - [Canonical business rules](../domain/BUSINESS_RULES.md)
 - [Canonical event catalog](../domain/DOMAIN_EVENTS.md)

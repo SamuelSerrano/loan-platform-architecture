@@ -78,13 +78,18 @@ These questions are intentionally deferred and must not be guessed in code:
 | --- | --- | --- |
 | Q-001 | Which exact UI scope proves the journey: React portal plus Swagger, or React plus a dedicated operator view? | Demo UI specification. |
 | Q-002 | Which AWS region and account safeguards will be used for the on-demand demo? | Infrastructure implementation. |
-| Q-003 | What retention periods apply to demo applications, logs, documents, OTP records, audit entries, and DLQs? | Security model and IaC. |
-| Q-004 | Which event payload fields contain PII, and what tokenization or minimization rules apply? | Contract publication. |
+| Q-004 | What is the exact field-level sensitive-data classification and allowlist for each published OpenAPI, AsyncAPI, or JSON Schema contract? The Security Model defines transversal classification, minimization, masking, tokenization/reference, and prohibited-data rules but does not approve contract fields. | Contract publication. |
 | Q-005 | Should Application Process use pure event choreography with process policies or persist explicit saga steps and timers? | Application Process design ADR. |
 | Q-006 | What is the exact expiration and renewal policy for identity verification across reassessment? | Customer & Identity specification. |
 | Q-007 | What are the first-installment date and rounding conventions for the repayment schedule? | Loan Booking specification. |
 | Q-008 | Which applicant-facing reason codes may be shown directly and which require a customer-safe translation? | API/UI contract and communications design. |
 | Q-009 | What manual recovery action is permitted after repeated disbursement failure? | Disbursement workflow specification. |
+
+## Resolved questions
+
+| ID | Resolution | Resolved in |
+| --- | --- | --- |
+| Q-003 | Resolved for `AWS Demo` on 2026-08-14. Maximum retention is 30 days for applications/process data, 7 days for identity/signature documents and evidence, 24 hours after expiry or terminal completion for protected OTP records, 7 days for application logs, 30 days for audit, 7 days after terminal state for Inbox/Outbox/idempotency, and 4 days for DLQs. Backups, exports, snapshots, PITR, replication, Object Lock, and retained copies are disabled. Verified environment teardown overrides every scheduled period. Production retention remains deferred. | [Platform Security Model](../architecture/SECURITY_MODEL.md#10-aws-demo-retention-and-verified-deletion) |
 
 ## Review rule
 
