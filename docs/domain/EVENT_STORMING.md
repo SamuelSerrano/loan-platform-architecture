@@ -34,9 +34,9 @@ The [business-rule catalog](BUSINESS_RULES.md) is authoritative for invariants, 
 | Identity Provider | External business system | Supplies provider-specific verification evidence through the Customer & Identity anti-corruption layer | [Context relationships](BOUNDED_CONTEXTS_AND_EVENT_STORMING.md#6-context-relationships) |
 | Disbursement Provider | External business system | Executes or reports the transfer identified by the stable business idempotency key | [Disbursement rules](BUSINESS_RULES.md#11-disbursement-ds) |
 | Amazon Cognito | Generic platform system | Authenticates actors and supplies authorization scopes; it owns no business decision | [Domain classification](BOUNDED_CONTEXTS_AND_EVENT_STORMING.md#3-domain-classification) |
-| Amazon EventBridge | Integration infrastructure | Routes versioned public facts; it does not own business semantics | [Architecture decision A-004](../discovery/ASSUMPTIONS.md#confirmed-architecture-decisions-awaiting-adrs) |
-| Per-consumer SQS queue | Integration infrastructure | Isolates delivery and retry for one consumer with at-least-once semantics | [Architecture decision A-004](../discovery/ASSUMPTIONS.md#confirmed-architecture-decisions-awaiting-adrs) |
-| Per-consumer DLQ | Recovery infrastructure | Retains exhausted deliveries for diagnosis and controlled redrive | [Architecture decision A-004](../discovery/ASSUMPTIONS.md#confirmed-architecture-decisions-awaiting-adrs) |
+| Amazon EventBridge | Integration infrastructure | Routes versioned public facts; it does not own business semantics | [Architecture decision A-004](../discovery/ASSUMPTIONS.md#confirmed-architecture-decisions-and-adr-tracking) |
+| Per-consumer SQS queue | Integration infrastructure | Isolates delivery and retry for one consumer with at-least-once semantics | [Architecture decision A-004](../discovery/ASSUMPTIONS.md#confirmed-architecture-decisions-and-adr-tracking) |
+| Per-consumer DLQ | Recovery infrastructure | Retains exhausted deliveries for diagnosis and controlled redrive | [Architecture decision A-004](../discovery/ASSUMPTIONS.md#confirmed-architecture-decisions-and-adr-tracking) |
 | Protected object storage | Security infrastructure | Stores document bytes and protected evidence behind owning APIs | [BR-DP-004](BUSINESS_RULES.md#7-document-preparation-dp) |
 | Simulated notification channels | External adapter | Deliver fictitious OTP and transactional messages without owning validation | [Constraints C-003 and C-004](../discovery/ASSUMPTIONS.md#delivery-constraints) |
 

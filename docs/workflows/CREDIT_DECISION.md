@@ -6,7 +6,7 @@ This workflow describes the logical path from a valid identity result to a compl
 
 ## 2. Scope and non-goals
 
-It covers assessment dispositions, deterministic evaluation, offer lifecycle, acceptance/rejection, expiry, supersession, and reassessment. Logical orchestration uses the persisted Application Process process manager established by [ADR-003](../adr/ADR-003-EVENT-DRIVEN.md). It does not define executable contracts, new rules, provider behavior, persistence schemas, scheduler technology, safe-reason allowlists, or numeric retry/timer defaults.
+It covers assessment dispositions, deterministic evaluation, offer lifecycle, acceptance/rejection, expiry, supersession, and reassessment. The end-to-end journey uses the persisted Application Process process manager only for coarse cross-context progression. Each capability owns its internal workflow, policies, decisions, and recovery, as established by [ADR-003](../adr/ADR-003-EVENT-DRIVEN.md). It does not define executable contracts, new rules, provider behavior, persistence schemas, scheduler technology, safe-reason allowlists, or numeric retry/timer defaults.
 
 ## 3. Trigger
 

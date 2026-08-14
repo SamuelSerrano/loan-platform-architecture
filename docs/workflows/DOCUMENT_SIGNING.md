@@ -6,7 +6,7 @@ This workflow defines the logical sequence from an accepted active offer through
 
 ## 2. Scope and non-goals
 
-It covers Document Preparation, Communications, and Electronic Signature ownership and their recovery paths. Logical orchestration uses the persisted Application Process process manager established by [ADR-003](../adr/ADR-003-EVENT-DRIVEN.md). It does not choose providers, define legal signature classes, publish schemas, define field allowlists, or implement persistence schemas, scheduler technology, storage, or transport.
+It covers Document Preparation, Communications, and Electronic Signature ownership and their recovery paths. The end-to-end journey uses the persisted Application Process process manager only for coarse cross-context progression. Each capability owns its internal workflow, policies, decisions, and recovery, as established by [ADR-003](../adr/ADR-003-EVENT-DRIVEN.md). It does not choose providers, define legal signature classes, publish schemas, define field allowlists, or implement persistence schemas, scheduler technology, storage, or transport.
 
 ## 3. Trigger
 

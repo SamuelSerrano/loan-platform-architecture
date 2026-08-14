@@ -22,7 +22,7 @@
 | P-005 | Decision | A favorable decision produces alternatives; selecting one creates a single immutable `CreditOffer`. Application Process owns the applicant's acceptance or explicit rejection of the active offer, including the referenced `offerId`, exact canonical `termsHash`, action timestamp, stage history, and idempotency. | Credit Decisioning retains ownership of the immutable offer, canonical terms, creation, expiry, and supersession. Application Process records the journey action without mutating or redefining offer terms. |
 | P-006 | Decision | A person becomes a `Borrower` only after the loan account is activated. | `Applicant`, `Customer`, `Signer`, and `Borrower` are not interchangeable terms. |
 
-## Confirmed architecture decisions awaiting ADRs
+## Confirmed architecture decisions and ADR tracking
 
 | ID | Type | Statement | Planned ADR |
 | --- | --- | --- | --- |

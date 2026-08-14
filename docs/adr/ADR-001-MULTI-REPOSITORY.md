@@ -110,7 +110,7 @@ Revisit when issue #7 defines delivery milestones, a repository repeatedly canno
 ## References
 
 - [Discovery](../discovery/DISCOVERY.md)
-- [Assumptions A-001 and A-006](../discovery/ASSUMPTIONS.md#confirmed-architecture-decisions-awaiting-adrs)
+- [Assumptions A-001 and A-006](../discovery/ASSUMPTIONS.md#confirmed-architecture-decisions-and-adr-tracking)
 - [Bounded-context repository boundaries](../domain/BOUNDED_CONTEXTS_AND_EVENT_STORMING.md#11-repository-boundaries-derived-from-the-model)
 - [MVP delivery sequence](../../README.md#delivery-sequence)
 - [Data Ownership](../architecture/DATA_OWNERSHIP.md)
