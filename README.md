@@ -44,6 +44,8 @@ The next milestone is to formalize the architecture baseline before creating sha
 
 - [System context](docs/architecture/SYSTEM_CONTEXT.md)
 - [Container architecture and execution profiles](docs/architecture/CONTAINER_DIAGRAM.md)
+- [Component catalog](docs/architecture/COMPONENT_CATALOG.md)
+- [Data ownership](docs/architecture/DATA_OWNERSHIP.md)
 
 ## Repository strategy
 

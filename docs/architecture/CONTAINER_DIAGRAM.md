@@ -134,7 +134,7 @@ The `stores` shape is visual shorthand: every service and projection has an inde
 
 ### Accepted-offer progression
 
-Credit Decisioning owns assessments, decisions, alternatives, and the immutable `Credit Offer`. Application Process owns saga coordination. After an applicant expresses an offer choice, the architecture advances toward document preparation without assigning the disputed acceptance/rejection command or event to either context. That ownership must be resolved explicitly under [`HS-001`](../domain/EVENT_STORMING.md#11-hotspots); this document does not resolve it by implication.
+Credit Decisioning owns assessments, decisions, alternatives, and the immutable `Credit Offer`, including canonical terms, creation, expiry, and supersession. Under confirmed resolution [`HS-001`](../domain/EVENT_STORMING.md#11-hotspots), Application Process owns the applicant's acceptance or explicit rejection of the active offer, the referenced `offerId`, exact accepted canonical `termsHash`, action timestamp, coarse stage history, and idempotency. Application Process does not mutate or redefine the offer. Consumers learn the action through a versioned integration event or a non-authoritative projection, never by reading Application Process persistence.
 
 The downstream sequence remains `Signed Package` -> `Loan Reservation (PendingDisbursement)` -> `Disbursement` -> `Loan Activation`. An operational failure cannot skip, reorder, or fabricate a successful step.
 

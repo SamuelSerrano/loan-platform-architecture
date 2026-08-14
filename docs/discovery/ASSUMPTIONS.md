@@ -2,7 +2,7 @@
 
 **Status:** Active register
 
-**Last updated:** 2026-08-06
+**Last updated:** 2026-08-14
 
 ## How to use this register
 
@@ -19,7 +19,7 @@
 | P-002 | Decision | The domain is financially neutral and canonical documentation is in English. | Amounts use `MU`; country-specific regulation remains outside scope. |
 | P-003 | Decision | Entry is progressive and requires little information to start. | Deeper identity, consent, income, obligation, and risk controls occur before an offer. |
 | P-004 | Decision | Credit outcomes are `Favorable` or `Unfavorable`. | Pending evidence, retry, and technical exception are operational dispositions, not declines. |
-| P-005 | Decision | A favorable decision produces alternatives; selecting one creates a single immutable `CreditOffer`. | Offer acceptance remains owned by Application Process. |
+| P-005 | Decision | A favorable decision produces alternatives; selecting one creates a single immutable `CreditOffer`. Application Process owns the applicant's acceptance or explicit rejection of the active offer, including the referenced `offerId`, exact canonical `termsHash`, action timestamp, stage history, and idempotency. | Credit Decisioning retains ownership of the immutable offer, canonical terms, creation, expiry, and supersession. Application Process records the journey action without mutating or redefining offer terms. |
 | P-006 | Decision | A person becomes a `Borrower` only after the loan account is activated. | `Applicant`, `Customer`, `Signer`, and `Borrower` are not interchangeable terms. |
 
 ## Confirmed architecture decisions awaiting ADRs

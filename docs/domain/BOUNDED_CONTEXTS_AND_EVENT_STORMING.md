@@ -35,7 +35,7 @@ Detailed cross-context concerns are owned by these canonical documents:
 | Classification | Bounded context | Why |
 | --- | --- | --- |
 | Core | Application Process | Owns the onboarding case, lifecycle, stage progression and saga. |
-| Core | Credit Decisioning | Produces an explainable approval, decline or offer from versioned rules. |
+| Core | Credit Decisioning | Produces an explainable `Favorable` or `Unfavorable` decision and, for a favorable decision, eligible offer alternatives from versioned rules. |
 | Core | Document Preparation | Builds the contract package that expresses the accepted offer. |
 | Core | Electronic Signature | Obtains signatures and preserves legal evidence. |
 | Core | Disbursement | Controls the financially sensitive release of funds. |
@@ -51,7 +51,7 @@ Detailed cross-context concerns are owned by these canonical documents:
 flowchart TD
     CI["Customer & Identity"] -->|"Identity outcome"| AP["Application Process"]
     AP -->|"Eligible application"| CD["Credit Decisioning"]
-    CD -->|"Offer or decline"| AP
+    CD -->|"Favorable decision and offer, or Unfavorable decision"| AP
     AP -->|"Accepted offer"| DP["Document Preparation"]
     DP -->|"Approved package"| ES["Electronic Signature"]
     ES -->|"Signed package"| LB["Loan Booking"]
