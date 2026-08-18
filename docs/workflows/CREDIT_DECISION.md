@@ -77,11 +77,10 @@ There is no rollback of a completed decision. Reassessment is a new governed fac
 
 ## 12. Security and data minimization
 
-Public facts carry approved IDs, safe codes, policy versions, and minimum immutable offer snapshots/hashes. They exclude raw identity/financial evidence, full PII, provider payloads/credentials, unrestricted fraud details, and internal rule traces. Applicant explanations use safe codes without resolving `Q-008`; exact field allowlists remain `Q-004`. Authorization prevents client-supplied replacement terms and cross-customer access.
+Public facts carry the IDs, internal traceable codes, policy/ruleset versions, and minimum immutable offer snapshots/hashes approved by the [initial catalog](../contracts/INITIAL_CONTRACT_CATALOG.md). They exclude raw identity/financial evidence, full PII, provider payloads/credentials, unrestricted fraud details, and internal rule traces. `Q-008` remains open, so applicant-facing exposure or translation of reason codes is prohibited. Authorization prevents client-supplied replacement terms and cross-customer access.
 
 ## 13. Open questions
 
-- `Q-004`: contract field allowlists.
 - `Q-006`: identity validity/renewal across reassessment.
 - `Q-008`: applicant-facing reason-code disclosure/translation.
 

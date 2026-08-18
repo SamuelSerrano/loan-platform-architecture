@@ -2,7 +2,7 @@
 
 **Status:** Active register
 
-**Last updated:** 2026-08-14
+**Last updated:** 2026-08-18
 
 ## How to use this register
 
@@ -31,7 +31,7 @@
 | A-003 | Decision | Coordinate the onboarding as an event-driven saga owned by Application Process. | [ADR-003](../adr/ADR-003-EVENT-DRIVEN.md) |
 | A-004 | Decision | Route integration events through EventBridge and deliver them through SQS queues with a DLQ per consumer. | [ADR-003](../adr/ADR-003-EVENT-DRIVEN.md) |
 | A-005 | Decision | Each microservice owns its persistence; DynamoDB is the default operational store. | [ADR-004](../adr/ADR-004-DATABASE-PER-SERVICE.md) |
-| A-006 | Decision | Public contracts live as OpenAPI, AsyncAPI, and JSON Schema—not as shared C# domain types. | Future contract-governance ADR |
+| A-006 | Decision | Public contracts live as OpenAPI, AsyncAPI, and JSON Schema—not as shared C# domain types. | [ADR-005](../adr/ADR-005-CONTRACT-GOVERNANCE.md) |
 | A-007 | Decision | Reserve the loan before disbursement and activate it only after confirmed disbursement. | Future fulfillment-consistency ADR |
 | A-008 | Decision | Audit consumes events asynchronously and is not a synchronous dependency. | Future audit ADR |
 
@@ -78,7 +78,6 @@ These questions are intentionally deferred and must not be guessed in code:
 | --- | --- | --- |
 | Q-001 | Which exact UI scope proves the journey: React portal plus Swagger, or React plus a dedicated operator view? | Demo UI specification. |
 | Q-002 | Which AWS region and account safeguards will be used for the on-demand demo? | Infrastructure implementation. |
-| Q-004 | What is the exact field-level sensitive-data classification and allowlist for each published OpenAPI, AsyncAPI, or JSON Schema contract? The Security Model defines transversal classification, minimization, masking, tokenization/reference, and prohibited-data rules but does not approve contract fields. | Contract publication. |
 | Q-006 | What is the exact expiration and renewal policy for identity verification across reassessment? | Customer & Identity specification. |
 | Q-007 | What are the first-installment date and rounding conventions for the repayment schedule? | Loan Booking specification. |
 | Q-008 | Which applicant-facing reason codes may be shown directly and which require a customer-safe translation? | API/UI contract and communications design. |
@@ -87,6 +86,7 @@ These questions are intentionally deferred and must not be guessed in code:
 
 | ID | Resolution | Resolved in |
 | --- | --- | --- |
+| Q-004 | Resolved on 2026-08-18 only for the initial M1 contracts and fields. Publication is deny-by-default; every future contract, field, consumer, or incompatible version requires a new field-level allowlist review. This resolution does not authorize raw sensitive data, applicant-facing reason-code exposure, repository creation, or executable contract publication. | [Initial Contract Catalog](../contracts/INITIAL_CONTRACT_CATALOG.md#7-q-004-resolution-boundary), [ADR-005](../adr/ADR-005-CONTRACT-GOVERNANCE.md) |
 | Q-003 | Resolved for `AWS Demo` on 2026-08-14. Maximum retention is 30 days for applications/process data, 7 days for identity/signature documents and evidence, 24 hours after expiry or terminal completion for protected OTP records, 7 days for application logs, 30 days for audit, 7 days after terminal state for Inbox/Outbox/idempotency, and 4 days for DLQs. Backups, exports, snapshots, PITR, replication, Object Lock, and retained copies are disabled. Verified environment teardown overrides every scheduled period. Production retention remains deferred. | [Platform Security Model](../architecture/SECURITY_MODEL.md#10-aws-demo-retention-and-verified-deletion) |
 | Q-005 | Resolved on 2026-08-14. Application Process owns an explicitly persisted saga/process manager with coarse stage, checkpoints, expected facts, correlation/causation, consumed-event versions, operational disposition, recovery references, workflow deadlines, timer metadata, and idempotency. A replaceable scheduling port activates idempotent due checks; Local uses a deterministic clock/scheduler. Exact scheduler technology, persistence schema, and numeric timers remain implementation decisions. | [ADR-003](../adr/ADR-003-EVENT-DRIVEN.md#persisted-deadlines-and-timers--q-005-resolution) |
 | Q-009 | Resolved on 2026-08-14. Manual recovery starts with `CMD-XS-002 RequestManualRecovery` and an authorized, evidenced, idempotent, audited owner operation. Disbursement reconciles unknown outcomes with the original order/reference/key before retry; a retry is allowed only after confirmed absence of transfer, while the reservation remains valid and the failure/retry budget permits it. Confirmed transfers continue through existing Disbursement and Loan Booking paths. Terminal or persistently ambiguous cases stop and remain isolated; operators cannot fabricate success, edit queues/messages/databases, silently cancel/release reservations, activate/decline/complete, or reverse funds automatically. | [Disbursement Workflow](../workflows/DISBURSEMENT.md#10-compensation-and-manual-recovery-q-009-resolution) |
