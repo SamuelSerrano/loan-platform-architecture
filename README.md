@@ -14,11 +14,11 @@ The platform demonstrates a low-value unsecured personal-loan journey with progr
 
 **Domain documentation baseline:** complete
 
-**Architecture baseline:** in progress
+**Architecture baseline:** complete
 
 **Implementation:** not started
 
-The next milestone is to formalize the architecture baseline before creating shared contracts and service repositories.
+The next steps are to govern repository creation through the delivery roadmap and then define the contracts baseline. Planned implementation repositories remain subject to their entry gates.
 
 ## Sources of truth
 
@@ -62,6 +62,10 @@ The next milestone is to formalize the architecture baseline before creating sha
 - [Document signing workflow](docs/workflows/DOCUMENT_SIGNING.md)
 - [Disbursement workflow](docs/workflows/DISBURSEMENT.md)
 
+### Delivery roadmap
+
+- [Repository delivery roadmap](roadmap/REPOSITORY_DELIVERY_ROADMAP.md)
+
 ## Repository strategy
 
 This platform follows a multi-repository strategy. New repositories are created only after their boundaries and contracts are validated here.
@@ -82,10 +86,10 @@ Planned repositories include:
 
 ## Delivery sequence
 
-1. Formalize system architecture, data ownership, security, workflows, and ADRs on top of the completed domain documentation baseline.
-2. Publish versioned integration contracts.
-3. Create each service repository from an approved specification.
-4. Implement vertical slices with Spec-Driven Development and TDD.
+1. Apply the repository delivery roadmap and its creation gates.
+2. Define the contracts baseline without anticipating executable contracts outside its owning issue.
+3. Create each implementation repository only after its gate is satisfied.
+4. Implement approved vertical slices with Spec-Driven Development and TDD.
 
 ## Important notice
 
