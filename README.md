@@ -18,7 +18,7 @@ The platform demonstrates a low-value unsecured personal-loan journey with progr
 
 **Implementation:** not started
 
-The next steps are to govern repository creation through the delivery roadmap and then define the contracts baseline. Planned implementation repositories remain subject to their entry gates.
+The contracts governance baseline is documented and the future contracts repository is `Ready` for a separately governed creation task. M1 remains `Defined`, no executable contract has been published, and implementation has not started.
 
 ## Sources of truth
 
@@ -54,6 +54,12 @@ The next steps are to govern repository creation through the delivery roadmap an
 - [ADR-002 — .NET 10 and Serverless AWS Demo Architecture](docs/adr/ADR-002-SERVERLESS-AWS.md)
 - [ADR-003 — Event-Driven Communication and Persisted Application Process Saga](docs/adr/ADR-003-EVENT-DRIVEN.md)
 - [ADR-004 — Database per Service and Data Isolation](docs/adr/ADR-004-DATABASE-PER-SERVICE.md)
+- [ADR-005 — Language-Neutral Contract Governance](docs/adr/ADR-005-CONTRACT-GOVERNANCE.md)
+
+### Contracts governance
+
+- [Contracts governance baseline](docs/contracts/CONTRACTS_BASELINE.md)
+- [Initial M1 contract catalog and field allowlists](docs/contracts/INITIAL_CONTRACT_CATALOG.md)
 
 ### Workflows
 
@@ -87,7 +93,7 @@ Planned repositories include:
 ## Delivery sequence
 
 1. Apply the repository delivery roadmap and its creation gates.
-2. Define the contracts baseline without anticipating executable contracts outside its owning issue.
+2. Create the contracts repository only through its approved gate; the documentary baseline does not publish executable contracts.
 3. Create each implementation repository only after its gate is satisfied.
 4. Implement approved vertical slices with Spec-Driven Development and TDD.
 

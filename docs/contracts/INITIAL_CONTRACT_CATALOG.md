@@ -1,0 +1,283 @@
+# Initial Contract Catalog
+
+**Status:** Approved documentary allowlist for initial M1 scope
+
+**Date:** 2026-08-18
+
+## 1. Purpose and interpretation
+
+This catalog selects the minimum contracts for the first walking skeleton and approves their fields under `Q-004`. It is a documentary registry, not OpenAPI, AsyncAPI, JSON Schema, code, or evidence that a contract is published. Anything not listed is denied.
+
+The classifications are exactly `Public`, `Internal`, `Confidential`, `Restricted`, and `Restricted secret`. No initial field is approved as `Restricted secret`. `Service` means only owner-controlled service APIs/queues and encrypted stores; `edge` means the authenticated public API boundary; `applicant` means the authenticated owner view. Logs, traces, audit, analytics, and DLQs receive only fields explicitly permitted there. `Owner policy` means the retention of the authoritative owner described by the [Security Model](../architecture/SECURITY_MODEL.md); transport copies follow Inbox/Outbox/DLQ limits and verified deletion.
+
+Reason-code fields below are traceable service-to-service codes. They are prohibited from applicant responses, UI, and communications until `Q-008` approves exposure or translation.
+
+## 2. Initial contract inventory
+
+### HTTP operations
+
+| Operation | Owner | Purpose | Known consumer |
+| --- | --- | --- | --- |
+| `StartCreditApplication` | Application Process | Start or recover the applicant's draft journey. | Applicant UI/API client |
+| `SubmitCreditApplication` | Application Process | Submit the complete minimized snapshot and consent references. | Applicant UI/API client |
+| `GetCreditApplicationStatus` | Application Process | Return the safe owner projection of journey state. | Applicant UI/API client |
+| `AcceptCreditOffer` | Application Process | Accept the exact active offer identity and terms hash. | Applicant UI/API client |
+| `StandardProblem` | Edge plus operation owner | Return a safe standardized HTTP failure. | Applicant UI/API client |
+
+#### HTTP operation profiles
+
+No route path is fixed by this documentary baseline. Every operation has `Implementation status: not started` and uses `StandardProblem` for safe transport, authorization, validation, conflict, and dependency errors; a technical or dependency error is never a credit outcome.
+
+| Operation | Caller | Authorization scope | Idempotency | Success/status classes | Sensitive-data constraints | Canonical sources |
+| --- | --- | --- | --- | --- | --- | --- |
+| StartCreditApplication | Authenticated Applicant | Create/recover only the caller's application | Required key; same intent returns same result | Created or existing draft | No PII in key, logs, or error | CMD-AP-001; BR-AP-001; Loan A1 |
+| SubmitCreditApplication | Authenticated Applicant | Submit only the caller's draft | Required key; changed replay rejected | Accepted/submitted or safe validation/conflict | References instead of consent/evidence bodies | CMD-AP-002; BR-AP-001; Loan A2 |
+| GetCreditApplicationStatus | Authenticated Applicant | Read only the caller's projection | Safe repeatable query | Current safe projection or not-found/forbidden | No private history, internal reasons, or cross-customer data | DATA_OWNERSHIP; LOAN_ONBOARDING; Q-008 |
+| AcceptCreditOffer | Authenticated Applicant | Accept only the caller's exact active offer | Required key; same offer/hash returns same result | Accepted/progressed or safe conflict | Exact opaque offer ID and terms hash; no client-authored terms | CMD-AP-003; P-005; BR-AP-006 |
+| StandardProblem | Authenticated caller | Same scope as failed operation | Carries no retry authority | RFC 9457 status plus safe code | No PII, stack, provider body/code, credit-reason exposure, or secret | RFC 9457; SECURITY_MODEL; Q-008 |
+
+### Asynchronous messages
+
+| Contract | Kind | Owner | Known consumer |
+| --- | --- | --- | --- |
+| `CreditApplicationSubmitted.v1` | Integration event (`IE-AP-001`) | Application Process | Customer & Identity; Audit projection |
+| `CustomerIdentityVerified.v1` | Integration event (`IE-CI-001`) | Customer & Identity | Application Process; Audit projection |
+| `CustomerIdentityRejected.v1` | Integration event (`IE-CI-002`) | Customer & Identity | Application Process; Communications only after Q-008; Audit projection |
+| `CreditAssessmentRequested.v1` | Asynchronous policy request; no `IE-*` ID | Application Process | Credit Decisioning |
+| `CreditAssessmentPendingEvidence.v1` | Integration event (`IE-CD-001`) | Credit Decisioning | Application Process |
+| `CreditAssessmentPendingRetry.v1` | Integration event (`IE-CD-002`) | Credit Decisioning | Application Process |
+| `CreditAssessmentOperationalExceptionRecorded.v1` | Integration event (`IE-CD-003`) | Credit Decisioning | Application Process; operations projection |
+| `FavorableCreditDecisionRecorded.v1` | Integration event (`IE-CD-004`) | Credit Decisioning | Application Process |
+| `UnfavorableCreditDecisionRecorded.v1` | Integration event (`IE-CD-005`) | Credit Decisioning | Application Process |
+| `CreditOfferCreated.v1` | Integration event (`IE-CD-006`) | Credit Decisioning | Application Process |
+
+### Versioned policy
+
+| Contract | Owner | Purpose | Known consumer |
+| --- | --- | --- | --- |
+| `QuickPersonalLoanPolicy.v1` | Credit Decisioning | Fictitious immutable policy input for deterministic evaluation. | Credit Decisioning |
+
+## 3. Field-level allowlists
+
+Every row is an independent approval. `Required/optional` describes the planned transport contract, not an executable schema.
+
+### 3.1 Public HTTP fields
+
+| Contract | Field path | Required/optional | Owner/source | Purpose | Known consumer | Classification | Treatment | Permitted locations | Prohibited locations | Retention inheritance | Rationale | Canonical source | Approval status |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| StartCreditApplication | request.productId | Required | AP / product selection | Select demo product | AP | Public | Validate allowlisted product | edge, AP | logs beyond safe ID not needed | AP owner policy | Required start intent | SCOPE; BR-AP-001 | Approved |
+| StartCreditApplication | request.idempotencyKey | Required | Client-generated opaque ID | Deduplicate start | AP | Internal | Opaque; exact-match only | edge, AP, safe logs | applicant display, analytics | AP owner policy | Retry safety | ADR-003 | Approved |
+| StartCreditApplication | response.applicationId | Required | AP | Identify aggregate | Applicant owner | Confidential | Opaque; subject-authorized | edge, AP, applicant | public logs, cross-customer views | AP owner policy | Continue journey | DATA_OWNERSHIP | Approved |
+| StartCreditApplication | response.applicationNumber | Required | AP | Human-safe journey reference | Applicant owner | Confidential | Subject-authorized; mask in logs | edge, AP, applicant | events, public logs | AP owner policy | Applicant support | UBIQUITOUS_LANGUAGE | Approved |
+| StartCreditApplication | response.status | Required | AP | Safe journey projection | Applicant owner | Internal | Allowlisted enum | edge, AP, applicant, safe audit | raw traces not needed | AP owner policy | Navigation | LOAN_ONBOARDING | Approved |
+| SubmitCreditApplication | path.applicationId | Required | AP | Select aggregate | AP | Confidential | Opaque; subject-authorized | edge, AP | public logs, other contexts except mapped event | AP owner policy | Command target | BR-AP-001 | Approved |
+| SubmitCreditApplication | request.requestedAmount | Required | Applicant; AP validates | Requested principal | AP | Confidential | Decimal money; encrypt | edge, AP | logs, audit payload, UI after session | AP owner policy | Policy input | PRODUCT_AND_CREDIT_POLICY | Approved |
+| SubmitCreditApplication | request.currency | Required | Product policy | Interpret amount | AP | Internal | Allowlisted code | edge, AP, safe logs | none beyond unapproved contracts | AP owner policy | Money integrity | PRODUCT_AND_CREDIT_POLICY | Approved |
+| SubmitCreditApplication | request.requestedTermMonths | Required | Applicant; AP validates | Requested term | AP | Confidential | Allowlisted integer | edge, AP | logs, analytics without governance | AP owner policy | Policy input | PRODUCT_AND_CREDIT_POLICY | Approved |
+| SubmitCreditApplication | request.consentReferenceIds | Required | Customer & Identity reference | Prove purpose-bound consent presence | AP, CI through mapped event | Restricted | Opaque references; encrypt | edge, AP, CI | consent text, logs, applicant echo | CI/AP owner policy | No inferred consent | BR-AP-001; SECURITY_MODEL | Approved |
+| SubmitCreditApplication | request.idempotencyKey | Required | Client-generated opaque ID | Deduplicate submission | AP | Internal | Opaque; exact-match only | edge, AP, safe logs | applicant display, analytics | AP owner policy | Retry safety | ADR-003 | Approved |
+| SubmitCreditApplication | response.applicationId | Required | AP | Confirm target | Applicant owner | Confidential | Opaque; subject-authorized | edge, AP, applicant | public logs | AP owner policy | Correlation | DATA_OWNERSHIP | Approved |
+| SubmitCreditApplication | response.status | Required | AP | Confirm stage | Applicant owner | Internal | Allowlisted enum | edge, AP, applicant, safe audit | internal workflow detail | AP owner policy | Journey feedback | LOAN_ONBOARDING | Approved |
+| GetCreditApplicationStatus | path.applicationId | Required | AP | Select aggregate | AP | Confidential | Opaque; subject-authorized | edge, AP | public logs | AP owner policy | Query target | DATA_OWNERSHIP | Approved |
+| GetCreditApplicationStatus | response.applicationId | Required | AP | Bind response | Applicant owner | Confidential | Opaque; subject-authorized | edge, AP, applicant | public logs | AP owner policy | Correlation | DATA_OWNERSHIP | Approved |
+| GetCreditApplicationStatus | response.status | Required | AP | Safe coarse stage | Applicant owner | Internal | Allowlisted projection | edge, AP, applicant, safe audit | private state/history | AP owner policy | Progress visibility | LOAN_ONBOARDING | Approved |
+| GetCreditApplicationStatus | response.activeOffer.offerId | Optional | CD; AP projection | Identify active offer | Applicant owner | Confidential | Opaque; subject-authorized | CD event, AP, edge, applicant | public logs | CD/AP owner policy | Exact selection | P-005 | Approved |
+| GetCreditApplicationStatus | response.activeOffer.termsHash | Optional | CD | Bind immutable terms | Applicant owner | Restricted | Integrity value; exact-match | CD event, AP, edge, applicant | analytics, mutable client authority | CD/AP owner policy | Prevent term substitution | P-005 | Approved |
+| GetCreditApplicationStatus | response.activeOffer.amount | Optional | CD | Display offered principal | Applicant owner | Confidential | Decimal money; encrypt | CD, AP, edge, applicant | logs, audit payload | CD/AP owner policy | Offer review | CREDIT_DECISIONING_DESIGN | Approved |
+| GetCreditApplicationStatus | response.activeOffer.currency | Optional | CD | Interpret amount | Applicant owner | Internal | Allowlisted code | CD, AP, edge, applicant | unapproved contract reuse | CD/AP owner policy | Money integrity | PRODUCT_AND_CREDIT_POLICY | Approved |
+| GetCreditApplicationStatus | response.activeOffer.termMonths | Optional | CD | Display term | Applicant owner | Confidential | Integer; encrypt | CD, AP, edge, applicant | logs | CD/AP owner policy | Offer review | CREDIT_DECISIONING_DESIGN | Approved |
+| GetCreditApplicationStatus | response.activeOffer.installmentAmount | Optional | CD | Display installment | Applicant owner | Confidential | Decimal money; encrypt | CD, AP, edge, applicant | logs | CD/AP owner policy | Offer review | CREDIT_DECISIONING_DESIGN | Approved |
+| GetCreditApplicationStatus | response.activeOffer.interestRate | Optional | CD | Display fictitious rate | Applicant owner | Confidential | Decimal; label fictitious | CD, AP, edge, applicant | logs, production reuse | CD/AP owner policy | Offer review | PRODUCT_AND_CREDIT_POLICY | Approved |
+| GetCreditApplicationStatus | response.activeOffer.expiresAt | Optional | CD | Enforce/display expiry | Applicant owner | Internal | RFC 3339 UTC | CD, AP, edge, applicant | none beyond approved projection | CD/AP owner policy | Prevent stale acceptance | BR-CD-005 | Approved |
+| AcceptCreditOffer | path.applicationId | Required | AP | Select aggregate | AP | Confidential | Opaque; subject-authorized | edge, AP | public logs | AP owner policy | Command target | P-005 | Approved |
+| AcceptCreditOffer | request.offerId | Required | CD offer; applicant echoes | Select exact offer | AP | Confidential | Opaque; subject-authorized | edge, AP | public logs | AP/CD owner policy | Prevent substitution | P-005 | Approved |
+| AcceptCreditOffer | request.termsHash | Required | CD offer; applicant echoes | Bind exact terms | AP | Restricted | Integrity check; no mutation | edge, AP | logs, analytics | AP/CD owner policy | Acceptance evidence | P-005 | Approved |
+| AcceptCreditOffer | request.idempotencyKey | Required | Client-generated opaque ID | Deduplicate acceptance | AP | Internal | Opaque; exact-match only | edge, AP, safe logs | applicant display | AP owner policy | Retry safety | ADR-003 | Approved |
+| AcceptCreditOffer | response.applicationId | Required | AP | Confirm aggregate | Applicant owner | Confidential | Opaque; subject-authorized | edge, AP, applicant | public logs | AP owner policy | Correlation | DATA_OWNERSHIP | Approved |
+| AcceptCreditOffer | response.offerId | Required | CD/AP | Confirm accepted offer | Applicant owner | Confidential | Opaque; subject-authorized | edge, AP, applicant | public logs | AP/CD owner policy | Acceptance evidence | P-005 | Approved |
+| AcceptCreditOffer | response.status | Required | AP | Confirm journey progression | Applicant owner | Internal | Allowlisted projection | edge, AP, applicant, safe audit | private workflow detail | AP owner policy | Journey feedback | LOAN_ONBOARDING | Approved |
+| StandardProblem | type | Required | Operation owner | Stable safe problem category | Client | Public | URI from approved catalog | edge, applicant, safe logs | internal exception names | Request/log policy | Standard handling | RFC 9457 | Approved |
+| StandardProblem | title | Required | Operation owner | Short safe summary | Client | Public | Static catalog text | edge, applicant, safe logs | stack/provider text | Request/log policy | Human-readable handling | RFC 9457 | Approved |
+| StandardProblem | status | Required | Edge/owner | HTTP status | Client | Public | Valid HTTP code | edge, applicant, safe logs | none | Request/log policy | Protocol handling | RFC 9457 | Approved |
+| StandardProblem | detail | Optional | Operation owner | Safe occurrence detail | Client | Internal | Sanitized; no reason translation | edge, applicant | traces, provider bodies, PII | Request/log policy | Actionable transport failure | RFC 9457; SECURITY_MODEL | Approved |
+| StandardProblem | instance | Optional | Edge | Opaque occurrence reference | Client/support | Internal | Opaque URI/reference | edge, applicant, safe logs | embedded customer data | Request/log policy | Support correlation | RFC 9457 | Approved |
+| StandardProblem | code | Required | Operation owner | Stable technical/business command error | Client | Internal | Approved catalog; never credit outcome | edge, applicant, safe logs | internal rule trace/provider code | Request/log policy | Machine handling | SECURITY_MODEL | Approved |
+| StandardProblem | traceId | Required | Edge/runtime | Support correlation | Client/support | Internal | Opaque; sanitized | edge, applicant, safe logs/traces | analytics identity joins | Log policy | Diagnostics | SECURITY_MODEL | Approved |
+
+### 3.2 Common integration-event envelope
+
+The following fields apply exactly once to each of the nine integration-event contracts in section 2 (all asynchronous messages except `CreditAssessmentRequested.v1`).
+
+| Contract | Field path | Required/optional | Owner/source | Purpose | Known consumer | Classification | Treatment | Permitted locations | Prohibited locations | Retention inheritance | Rationale | Canonical source | Approval status |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| All initial integration events | eventId | Required | Producer | Deduplication identity | Listed consumers | Internal | Opaque immutable ID | event, inbox/outbox, safe logs | applicant surfaces | Inbox/Outbox policy | At-least-once safety | DOMAIN_EVENTS | Approved |
+| All initial integration events | eventType | Required | Producer/catalog | Select contract | Listed consumers | Internal | Exact catalog name | event, routing, logs | applicant surfaces | Inbox/Outbox policy | Dispatch | DOMAIN_EVENTS | Approved |
+| All initial integration events | eventVersion | Required | Producer/catalog | Select major version | Listed consumers | Internal | Positive major integer | event, routing, logs | applicant surfaces | Inbox/Outbox policy | Compatibility | DOMAIN_EVENTS | Approved |
+| All initial integration events | occurredAt | Required | Producer clock | Order evidence | Listed consumers | Internal | RFC 3339 UTC | event, inbox/outbox, safe logs/audit | applicant surfaces | Owner plus transport policy | Fact time | DOMAIN_EVENTS | Approved |
+| All initial integration events | aggregateId | Required | Producer aggregate | Identify source aggregate | Listed consumers | Confidential | Opaque; encrypt | event, owner stores, inbox/outbox | public logs, applicant surface | Owner plus transport policy | Source identity | DOMAIN_EVENTS | Approved |
+| All initial integration events | correlationId | Required | AP journey | Correlate journey | Listed consumers | Internal | Opaque; propagate unchanged | event, inbox/outbox, logs/traces/audit | applicant surface | Owner plus transport/log policy | End-to-end trace | ADR-003 | Approved |
+| All initial integration events | causationId | Required | Triggering command/event | Preserve causal chain | Listed consumers | Internal | Opaque; direct cause only | event, inbox/outbox, logs/traces/audit | applicant surface | Owner plus transport/log policy | Causality | ADR-003 | Approved |
+| All initial integration events | producer | Required | Producer identity | Declare source capability | Listed consumers | Internal | Allowlisted service name | event, routing, logs | applicant surface | Transport/log policy | Ownership | DOMAIN_EVENTS | Approved |
+| All initial integration events | traceId | Required | Runtime | Operational correlation | Listed consumers/support | Internal | Opaque; no baggage | event, logs/traces | applicant surface, analytics joins | Log policy | Diagnostics | SECURITY_MODEL | Approved |
+| All initial integration events | payload | Required | Producer mapping | Hold approved fact fields | Listed consumers | Restricted | Validate exact child allowlist and protect at highest child sensitivity | event, inbox/outbox, consumer owner store | logs, DLQ display, unapproved consumers | Highest child/transport policy | Explicit mapping boundary | DOMAIN_EVENTS | Approved |
+
+### 3.3 Integration-event payloads
+
+| Contract | Field path | Required/optional | Owner/source | Purpose | Known consumer | Classification | Treatment | Permitted locations | Prohibited locations | Retention inheritance | Rationale | Canonical source | Approval status |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| CreditApplicationSubmitted.v1 | payload.applicationId | Required | AP | Identify submitted application | CI, Audit | Confidential | Opaque; encrypt | event, CI/AP stores, sanitized audit | public logs | AP/CI policy | Correlation | IE-AP-001 | Approved |
+| CreditApplicationSubmitted.v1 | payload.customerId | Required | CI reference held by AP | Identify customer | CI, Audit | Confidential | Opaque; encrypt | event, CI/AP stores, sanitized audit | applicant/public logs | CI/AP policy | Verification target | IE-AP-001 | Approved |
+| CreditApplicationSubmitted.v1 | payload.productId | Required | AP/product | Identify product | CI | Internal | Allowlisted ID | event, services, safe logs | applicant display not required | AP policy | Context | IE-AP-001 | Approved |
+| CreditApplicationSubmitted.v1 | payload.consentReferenceIds | Required | CI/AP | Verify consent references | CI | Restricted | Opaque; encrypt; no consent text | event, CI/AP stores | logs, audit payload, applicant display | CI/AP policy | Consent prerequisite | IE-AP-001 | Approved |
+| CreditApplicationSubmitted.v1 | payload.submittedAt | Required | AP clock | Submission fact time | CI, Audit | Internal | RFC 3339 UTC | event, services, sanitized audit | applicant display not required | AP/CI policy | Fact semantics | IE-AP-001 | Approved |
+| CustomerIdentityVerified.v1 | payload.applicationId | Required | CI input | Correlate application | AP, Audit | Confidential | Opaque; encrypt | event, CI/AP stores, sanitized audit | public logs | CI/AP policy | Journey progression | IE-CI-001 | Approved |
+| CustomerIdentityVerified.v1 | payload.customerId | Required | CI | Identify verified customer | AP, Audit | Confidential | Opaque; encrypt | event, CI/AP stores, sanitized audit | applicant/public logs | CI/AP policy | Subject binding | IE-CI-001 | Approved |
+| CustomerIdentityVerified.v1 | payload.verificationId | Required | CI | Identify verification case | AP, Audit | Restricted | Opaque reference; encrypt | event, CI/AP stores, sanitized audit | logs, applicant display | CI policy | Evidence traceability without evidence | IE-CI-001 | Approved |
+| CustomerIdentityVerified.v1 | payload.verificationLevel | Required | CI | Provider-neutral assurance level | AP | Confidential | Allowlisted provider-neutral enum | event, CI/AP stores | provider detail, applicant display | CI/AP policy | Assessment prerequisite | IE-CI-001 | Approved |
+| CustomerIdentityVerified.v1 | payload.verifiedAt | Required | CI clock | Verification time | AP, Audit | Internal | RFC 3339 UTC | event, services, sanitized audit | applicant display not required | CI/AP policy | Validity | IE-CI-001 | Approved |
+| CustomerIdentityVerified.v1 | payload.validUntil | Required | CI policy | Validity boundary | AP | Confidential | RFC 3339 UTC; do not infer renewal | event, CI/AP stores | public logs | CI/AP policy | Prevent stale use | IE-CI-001; Q-006 | Approved |
+| CustomerIdentityRejected.v1 | payload.applicationId | Required | CI input | Correlate application | AP, Audit | Confidential | Opaque; encrypt | event, CI/AP stores, sanitized audit | public logs | CI/AP policy | Stop journey | IE-CI-002 | Approved |
+| CustomerIdentityRejected.v1 | payload.customerId | Required | CI | Identify subject | AP, Audit | Confidential | Opaque; encrypt | event, CI/AP stores, sanitized audit | applicant/public logs | CI/AP policy | Owner correlation | IE-CI-002 | Approved |
+| CustomerIdentityRejected.v1 | payload.verificationId | Required | CI | Identify verification | AP, Audit | Restricted | Opaque; encrypt | event, CI/AP stores, sanitized audit | logs, applicant display | CI policy | Traceability | IE-CI-002 | Approved |
+| CustomerIdentityRejected.v1 | payload.reasonCodes | Required | CI | Trace provider-neutral rejection reasons | AP | Confidential | Allowlisted internal codes; Q-008 blocks exposure | event, CI/AP stores | applicant/UI/communications, logs, raw provider codes | CI/AP policy | Internal traceability | IE-CI-002; Q-008 | Approved internal only |
+| CustomerIdentityRejected.v1 | payload.rejectedAt | Required | CI clock | Rejection fact time | AP, Audit | Internal | RFC 3339 UTC | event, services, sanitized audit | applicant display not required | CI/AP policy | Fact semantics | IE-CI-002 | Approved |
+| CreditAssessmentPendingEvidence.v1 | payload.assessmentId | Required | CD | Identify assessment | AP | Confidential | Opaque; encrypt | event, CD/AP stores | public logs | CD/AP policy | Resume exact assessment | IE-CD-001 | Approved |
+| CreditAssessmentPendingEvidence.v1 | payload.applicationId | Required | CD request | Correlate application | AP | Confidential | Opaque; encrypt | event, CD/AP stores | public logs | CD/AP policy | Journey state | IE-CD-001 | Approved |
+| CreditAssessmentPendingEvidence.v1 | payload.reasonCodes | Required | CD | Trace pending cause | AP | Confidential | Internal codes; Q-008 blocks exposure | event, CD/AP stores | applicant/UI/communications, logs | CD/AP policy | Operational trace | IE-CD-001; Q-008 | Approved internal only |
+| CreditAssessmentPendingEvidence.v1 | payload.requiredEvidenceCategories | Required | CD | Name remediable categories | AP | Confidential | Allowlisted category names only | event, CD/AP stores | raw evidence, documents, logs | CD/AP policy | Collect minimum evidence | IE-CD-001 | Approved |
+| CreditAssessmentPendingRetry.v1 | payload.assessmentId | Required | CD | Identify assessment | AP | Confidential | Opaque; encrypt | event, CD/AP stores | public logs | CD/AP policy | Retry same assessment | IE-CD-002 | Approved |
+| CreditAssessmentPendingRetry.v1 | payload.applicationId | Required | CD request | Correlate application | AP | Confidential | Opaque; encrypt | event, CD/AP stores | public logs | CD/AP policy | Journey state | IE-CD-002 | Approved |
+| CreditAssessmentPendingRetry.v1 | payload.reasonCode | Required | CD | Classify retry safely | AP | Internal | Generic technical code; not credit/applicant reason | event, CD/AP stores, safe ops | applicant/UI, provider errors | CD/AP policy | Technical separation | IE-CD-002 | Approved internal only |
+| CreditAssessmentPendingRetry.v1 | payload.retryAfter | Optional | CD policy | Hint earliest retry | AP | Internal | RFC 3339 UTC | event, CD/AP stores, safe ops | applicant surface | CD/AP policy | Bounded recovery | IE-CD-002 | Approved |
+| CreditAssessmentOperationalExceptionRecorded.v1 | payload.assessmentId | Required | CD | Identify assessment | AP, operations | Confidential | Opaque; encrypt | event, CD/AP stores | public logs | CD/AP policy | Recovery target | IE-CD-003 | Approved |
+| CreditAssessmentOperationalExceptionRecorded.v1 | payload.applicationId | Required | CD request | Correlate application | AP, operations | Confidential | Opaque; encrypt | event, CD/AP stores | public logs | CD/AP policy | Journey isolation | IE-CD-003 | Approved |
+| CreditAssessmentOperationalExceptionRecorded.v1 | payload.reasonCode | Required | CD | Generic operational class | AP, operations | Internal | Allowlisted technical code; no provider detail | event, stores, safe ops | applicant/UI, provider errors | CD/AP policy | Never manufacture decline | IE-CD-003 | Approved internal only |
+| CreditAssessmentOperationalExceptionRecorded.v1 | payload.recoveryReference | Required | CD | Owner-controlled recovery link | operations, AP | Restricted | Opaque reference; authorize access | event, CD/AP stores, operations | applicant/UI, public logs | CD policy | Safe recovery evidence | IE-CD-003 | Approved |
+| FavorableCreditDecisionRecorded.v1 | payload.assessmentId | Required | CD | Identify assessment | AP | Confidential | Opaque; encrypt | event, CD/AP stores | public logs | CD/AP policy | Decision trace | IE-CD-004 | Approved |
+| FavorableCreditDecisionRecorded.v1 | payload.applicationId | Required | CD request | Correlate application | AP | Confidential | Opaque; encrypt | event, CD/AP stores | public logs | CD/AP policy | Journey state | IE-CD-004 | Approved |
+| FavorableCreditDecisionRecorded.v1 | payload.decisionId | Required | CD | Identify immutable decision | AP | Confidential | Opaque; encrypt | event, CD/AP stores | public logs | CD/AP policy | Outcome identity | IE-CD-004 | Approved |
+| FavorableCreditDecisionRecorded.v1 | payload.riskBand | Required | CD rules | Record result band | AP | Confidential | Allowlisted band; no score/trace | event, CD/AP stores | applicant/UI, logs | CD/AP policy | Alternative context | IE-CD-004 | Approved |
+| FavorableCreditDecisionRecorded.v1 | payload.segment | Required | CD rules | Record policy segment | AP | Confidential | Allowlisted segment; no trace | event, CD/AP stores | applicant/UI, logs | CD/AP policy | Alternative context | IE-CD-004 | Approved |
+| FavorableCreditDecisionRecorded.v1 | payload.alternativeIds | Required | CD | Reference sanitized alternatives | AP | Confidential | Opaque IDs only | event, CD/AP stores | logs, full calculations | CD/AP policy | Offer selection | IE-CD-004 | Approved |
+| FavorableCreditDecisionRecorded.v1 | payload.policyVersion | Required | CD policy | Reproduce policy | AP | Internal | Immutable version ID | event, stores, safe audit | applicant surface | CD/AP policy | Explainability | IE-CD-004 | Approved |
+| FavorableCreditDecisionRecorded.v1 | payload.rulesetVersion | Required | CD rules | Reproduce rules | AP | Internal | Immutable version ID | event, stores, safe audit | applicant surface | CD/AP policy | Determinism | CREDIT_DECISIONING_DESIGN | Approved |
+| UnfavorableCreditDecisionRecorded.v1 | payload.assessmentId | Required | CD | Identify assessment | AP | Confidential | Opaque; encrypt | event, CD/AP stores | public logs | CD/AP policy | Decision trace | IE-CD-005 | Approved |
+| UnfavorableCreditDecisionRecorded.v1 | payload.applicationId | Required | CD request | Correlate application | AP | Confidential | Opaque; encrypt | event, CD/AP stores | public logs | CD/AP policy | Journey state | IE-CD-005 | Approved |
+| UnfavorableCreditDecisionRecorded.v1 | payload.decisionId | Required | CD | Identify immutable decision | AP | Confidential | Opaque; encrypt | event, CD/AP stores | public logs | CD/AP policy | Outcome identity | IE-CD-005 | Approved |
+| UnfavorableCreditDecisionRecorded.v1 | payload.reasonCodes | Required | CD rules | Trace unfavorable rules | AP | Confidential | Internal traceable codes; Q-008 blocks exposure/translation | event, CD/AP stores | applicant/UI/communications, logs, rule trace | CD/AP policy | Internal explainability | IE-CD-005; Q-008 | Approved internal only |
+| UnfavorableCreditDecisionRecorded.v1 | payload.policyVersion | Required | CD policy | Reproduce policy | AP | Internal | Immutable version ID | event, stores, safe audit | applicant surface | CD/AP policy | Explainability | IE-CD-005 | Approved |
+| UnfavorableCreditDecisionRecorded.v1 | payload.rulesetVersion | Required | CD rules | Reproduce rules | AP | Internal | Immutable version ID | event, stores, safe audit | applicant surface | CD/AP policy | Determinism | CREDIT_DECISIONING_DESIGN | Approved |
+| CreditOfferCreated.v1 | payload.applicationId | Required | CD request | Correlate application | AP | Confidential | Opaque; encrypt | event, CD/AP stores | public logs | CD/AP policy | Journey state | IE-CD-006 | Approved |
+| CreditOfferCreated.v1 | payload.assessmentId | Required | CD | Bind assessment | AP | Confidential | Opaque; encrypt | event, CD/AP stores | public logs | CD/AP policy | Traceability | IE-CD-006 | Approved |
+| CreditOfferCreated.v1 | payload.decisionId | Required | CD | Bind favorable decision | AP | Confidential | Opaque; encrypt | event, CD/AP stores | public logs | CD/AP policy | Invariant | IE-CD-006 | Approved |
+| CreditOfferCreated.v1 | payload.alternativeId | Required | CD | Bind selected alternative | AP | Confidential | Opaque; encrypt | event, CD/AP stores | public logs | CD/AP policy | Exact terms source | IE-CD-006 | Approved |
+| CreditOfferCreated.v1 | payload.offerId | Required | CD | Identify immutable offer | AP | Confidential | Opaque; subject-authorized | event, CD/AP stores, applicant projection | public logs | CD/AP policy | Acceptance identity | IE-CD-006 | Approved |
+| CreditOfferCreated.v1 | payload.terms.amount | Required | CD | Immutable principal | AP | Confidential | Decimal money; encrypt | event, CD/AP stores, applicant projection | logs, audit payload | CD/AP policy | Offer terms | IE-CD-006 | Approved |
+| CreditOfferCreated.v1 | payload.terms.currency | Required | CD policy | Interpret money | AP | Internal | Allowlisted code | event, stores, applicant projection | unapproved reuse | CD/AP policy | Money integrity | IE-CD-006 | Approved |
+| CreditOfferCreated.v1 | payload.terms.termMonths | Required | CD | Immutable term | AP | Confidential | Integer; encrypt | event, stores, applicant projection | logs | CD/AP policy | Offer terms | IE-CD-006 | Approved |
+| CreditOfferCreated.v1 | payload.terms.installmentAmount | Required | CD formula | Immutable installment | AP | Confidential | Decimal money; encrypt | event, stores, applicant projection | logs | CD/AP policy | Offer terms | IE-CD-006 | Approved |
+| CreditOfferCreated.v1 | payload.terms.interestRate | Required | CD policy | Fictitious immutable rate | AP | Confidential | Decimal; label fictitious | event, stores, applicant projection | logs, production reuse | CD/AP policy | Offer terms | IE-CD-006 | Approved |
+| CreditOfferCreated.v1 | payload.termsHash | Required | CD | Integrity binding | AP | Restricted | Cryptographic digest; exact-match | event, stores, applicant projection | logs, mutable client authority | CD/AP policy | Prevent mutation | IE-CD-006 | Approved |
+| CreditOfferCreated.v1 | payload.expiresAt | Required | CD policy/clock | Offer validity | AP | Internal | RFC 3339 UTC | event, stores, applicant projection | unapproved reuse | CD/AP policy | Prevent stale acceptance | IE-CD-006 | Approved |
+| CreditOfferCreated.v1 | payload.policyVersion | Required | CD policy | Reproduce policy | AP | Internal | Immutable version ID | event, stores, safe audit | applicant surface | CD/AP policy | Traceability | IE-CD-006 | Approved |
+| CreditOfferCreated.v1 | payload.rulesetVersion | Required | CD rules | Reproduce rules | AP | Internal | Immutable version ID | event, stores, safe audit | applicant surface | CD/AP policy | Determinism | CREDIT_DECISIONING_DESIGN | Approved |
+
+### 3.4 Asynchronous policy request
+
+| Contract | Field path | Required/optional | Owner/source | Purpose | Known consumer | Classification | Treatment | Permitted locations | Prohibited locations | Retention inheritance | Rationale | Canonical source | Approval status |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| CreditAssessmentRequested.v1 | requestId | Required | AP | Request identity | CD | Internal | Opaque immutable ID | request, inbox/outbox, safe logs | applicant surface | Transport policy | Deduplication | ADR-003 | Approved |
+| CreditAssessmentRequested.v1 | requestType | Required | Catalog | Select request | CD | Internal | Exact contract name | request, routing, logs | applicant surface | Transport policy | Dispatch | CONTRACTS_BASELINE | Approved |
+| CreditAssessmentRequested.v1 | requestVersion | Required | Catalog | Select major version | CD | Internal | Positive major integer | request, routing, logs | applicant surface | Transport policy | Compatibility | CONTRACTS_BASELINE | Approved |
+| CreditAssessmentRequested.v1 | requestedAt | Required | AP clock | Request time | CD | Internal | RFC 3339 UTC | request, stores, safe logs | applicant surface | AP/CD policy | Timing evidence | ADR-003 | Approved |
+| CreditAssessmentRequested.v1 | applicationId | Required | AP | Correlate application | CD | Confidential | Opaque; encrypt | request, AP/CD stores | public logs | AP/CD policy | Assessment target | CREDIT_DECISIONING_DESIGN | Approved |
+| CreditAssessmentRequested.v1 | assessmentVersion | Required | AP process | Select immutable assessment revision | CD | Internal | Positive monotonic integer | request, AP/CD stores, safe audit | applicant surface | AP/CD policy | Reassessment integrity | CREDIT_DECISIONING_DESIGN | Approved |
+| CreditAssessmentRequested.v1 | correlationId | Required | AP journey | Correlate journey | CD | Internal | Opaque; propagate | request, stores, logs/traces | applicant surface | Log/transport policy | Traceability | ADR-003 | Approved |
+| CreditAssessmentRequested.v1 | causationId | Required | AP trigger | Record direct cause | CD | Internal | Opaque | request, stores, logs/traces | applicant surface | Log/transport policy | Causality | ADR-003 | Approved |
+| CreditAssessmentRequested.v1 | producer | Required | AP | Declare publisher | CD | Internal | Allowlisted service name | request, routing, logs | applicant surface | Transport policy | Ownership | CONTRACTS_BASELINE | Approved |
+| CreditAssessmentRequested.v1 | targetCapability | Required | AP/catalog | Declare intended receiver | CD | Internal | Exact allowlisted capability | request, routing, logs | applicant surface | Transport policy | Prevent request-as-fact ambiguity | CONTRACTS_BASELINE | Approved |
+| CreditAssessmentRequested.v1 | traceId | Required | Runtime | Operational correlation | CD/support | Internal | Opaque; no baggage | request, logs/traces | applicant surface, analytics joins | Log policy | Diagnostics | SECURITY_MODEL | Approved |
+| CreditAssessmentRequested.v1 | idempotencyKey | Required | AP | Deduplicate intent | CD | Internal | Stable opaque key | request, AP/CD stores | applicant surface | AP/CD policy | Retry safety | CREDIT_DECISIONING_DESIGN | Approved |
+| CreditAssessmentRequested.v1 | snapshotHash | Required | AP snapshot | Detect changed replay | CD | Restricted | Cryptographic digest | request, AP/CD stores | logs, applicant surface | AP/CD policy | Immutability | CREDIT_DECISIONING_DESIGN | Approved |
+| CreditAssessmentRequested.v1 | payload.customerId | Required | CI reference/AP | Bind customer | CD | Confidential | Opaque; encrypt | request, AP/CD stores | public logs | AP/CD policy | Exposure checks | DATA_OWNERSHIP | Approved |
+| CreditAssessmentRequested.v1 | payload.productId | Required | AP/product | Select policy product | CD | Internal | Allowlisted ID | request, stores, safe logs | applicant surface not needed | AP/CD policy | Policy selection | PRODUCT_AND_CREDIT_POLICY | Approved |
+| CreditAssessmentRequested.v1 | payload.requestedAmount | Required | AP submission | Requested principal | CD | Confidential | Decimal money; encrypt | request, AP/CD stores | logs, audit payload | AP/CD policy | Decision input | CREDIT_DECISION_TABLE | Approved |
+| CreditAssessmentRequested.v1 | payload.currency | Required | Product policy | Interpret money | CD | Internal | Allowlisted code | request, stores, safe logs | unapproved reuse | AP/CD policy | Money integrity | PRODUCT_AND_CREDIT_POLICY | Approved |
+| CreditAssessmentRequested.v1 | payload.requestedTermMonths | Required | AP submission | Requested term | CD | Confidential | Allowlisted integer; encrypt | request, AP/CD stores | logs | AP/CD policy | Decision input | CREDIT_DECISION_TABLE | Approved |
+| CreditAssessmentRequested.v1 | payload.applicantAgeYears | Required | CI-derived/AP snapshot | Evaluate age guard | CD | Confidential | Integer only; no date of birth | request, AP/CD stores | logs, events, applicant echo | AP/CD policy | Minimized decision input | CREDIT_DECISION_TABLE | Approved |
+| CreditAssessmentRequested.v1 | payload.verifiedNetMonthlyIncome | Required | Verified financial snapshot | Evaluate affordability | CD | Restricted | Decimal money; encrypt; no evidence | request, AP/CD stores | events, logs, evidence/provider payload | AP/CD policy | Required policy input | CREDIT_DECISION_TABLE | Approved |
+| CreditAssessmentRequested.v1 | payload.monthlyDebtObligations | Required | Verified financial snapshot | Evaluate exposure/PTI | CD | Restricted | Decimal money; encrypt; no evidence | request, AP/CD stores | events, logs, evidence/provider payload | AP/CD policy | Required policy input | CREDIT_DECISION_TABLE | Approved |
+| CreditAssessmentRequested.v1 | payload.identityVerificationId | Required | CI verified fact | Reference prerequisite | CD | Restricted | Opaque reference; encrypt | request, CI/AP/CD stores | logs, applicant surface | CI/AP/CD policy | Trace identity result | IE-CI-001 | Approved |
+| CreditAssessmentRequested.v1 | payload.identityVerificationLevel | Required | CI verified fact | Evaluate assurance requirement | CD | Confidential | Provider-neutral enum | request, AP/CD stores | provider details, applicant surface | AP/CD policy | Decision prerequisite | IE-CI-001 | Approved |
+| CreditAssessmentRequested.v1 | payload.identityVerifiedAt | Required | CI verified fact | Validate timing | CD | Internal | RFC 3339 UTC | request, stores | applicant surface | CI/AP/CD policy | Evidence chronology | IE-CI-001 | Approved |
+| CreditAssessmentRequested.v1 | payload.identityValidUntil | Required | CI verified fact | Reject stale prerequisite | CD | Confidential | RFC 3339 UTC; no renewal inference | request, stores | public logs | CI/AP/CD policy | Validity guard | IE-CI-001; Q-006 | Approved |
+| CreditAssessmentRequested.v1 | payload.consentReferenceIds | Required | CI/AP snapshot | Prove purpose consent | CD | Restricted | Opaque references; no text | request, AP/CD stores | logs, applicant echo | CI/AP/CD policy | Decision authorization | BR-AP-001 | Approved |
+| CreditAssessmentRequested.v1 | payload.policyVersion | Required | AP/config selection | Select immutable policy | CD | Internal | Exact version ID | request, stores, safe logs/audit | applicant surface | AP/CD policy | Reproducibility | CREDIT_DECISIONING_DESIGN | Approved |
+| CreditAssessmentRequested.v1 | payload.rulesetVersion | Required | AP/config selection | Select deterministic rules | CD | Internal | Exact version ID | request, stores, safe logs/audit | applicant surface | AP/CD policy | Reproducibility | CREDIT_DECISIONING_DESIGN | Approved |
+
+`CreditAssessmentRequested.v1` is intentionally not assigned an `IE-*` identifier. Full PII, dates of birth, raw income/identity evidence, documents, provider responses, fraud details, credentials, OTPs, and internal traces are prohibited.
+
+### 3.5 Versioned policy fields
+
+| Contract | Field path | Required/optional | Owner/source | Purpose | Known consumer | Classification | Treatment | Permitted locations | Prohibited locations | Retention inheritance | Rationale | Canonical source | Approval status |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| QuickPersonalLoanPolicy.v1 | policyId | Required | CD policy admin | Identify policy family | CD | Internal | Immutable allowlisted ID | policy contract/store, safe audit | applicant surface | Version history | Selection | PRODUCT_AND_CREDIT_POLICY | Approved |
+| QuickPersonalLoanPolicy.v1 | policyVersion | Required | CD policy admin | Identify immutable release | CD | Internal | Immutable semantic version | policy contract/store, safe audit | applicant surface | Version history | Reproducibility | PRODUCT_AND_CREDIT_POLICY | Approved |
+| QuickPersonalLoanPolicy.v1 | effectiveFrom | Required | CD policy admin | Start applicability | CD | Internal | RFC 3339 UTC | policy contract/store, safe audit | applicant surface | Version history | Temporal selection | PRODUCT_AND_CREDIT_POLICY | Approved |
+| QuickPersonalLoanPolicy.v1 | product.productId | Required | Product policy | Bind demo product | CD | Internal | Allowlisted ID | policy contract/store | applicant surface | Version history | Product scope | PRODUCT_AND_CREDIT_POLICY | Approved |
+| QuickPersonalLoanPolicy.v1 | product.amountBounds | Required | CD policy | Validate amount range | CD | Confidential | Fictitious min/max + currency; immutable | policy contract/store | public reuse, production use | Version history | Eligibility | PRODUCT_AND_CREDIT_POLICY | Approved |
+| QuickPersonalLoanPolicy.v1 | product.supportedTermMonths | Required | CD policy | Validate term | CD | Confidential | Fictitious allowlisted integers | policy contract/store | production reuse | Version history | Eligibility | PRODUCT_AND_CREDIT_POLICY | Approved |
+| QuickPersonalLoanPolicy.v1 | eligibility.ageBounds | Required | CD policy | Age guard | CD | Confidential | Fictitious min/max | policy contract/store | production reuse | Version history | Eligibility | PRODUCT_AND_CREDIT_POLICY | Approved |
+| QuickPersonalLoanPolicy.v1 | eligibility.minimumIncome | Required | CD policy | Income guard | CD | Confidential | Fictitious amount/currency | policy contract/store | production reuse | Version history | Eligibility | PRODUCT_AND_CREDIT_POLICY | Approved |
+| QuickPersonalLoanPolicy.v1 | eligibility.concurrentExposureRules | Required | CD policy | Exposure guard | CD | Confidential | Fictitious immutable rule parameters | policy contract/store | applicant surface, production reuse | Version history | Eligibility | PRODUCT_AND_CREDIT_POLICY | Approved |
+| QuickPersonalLoanPolicy.v1 | risk.riskBands | Required | CD policy | Map score to band | CD | Confidential | Fictitious ordered thresholds | policy contract/store | applicant surface, logs, production reuse | Version history | Determinism | PRODUCT_AND_CREDIT_POLICY | Approved |
+| QuickPersonalLoanPolicy.v1 | affordability.ptiRules | Required | CD policy | Affordability guard | CD | Confidential | Fictitious thresholds/formula reference | policy contract/store | applicant surface, logs, production reuse | Version history | Determinism | PRODUCT_AND_CREDIT_POLICY | Approved |
+| QuickPersonalLoanPolicy.v1 | alternatives.segmentRules | Required | CD policy | Build alternatives | CD | Confidential | Fictitious caps/terms/rate adjustments | policy contract/store | applicant surface, logs, production reuse | Version history | Determinism | PRODUCT_AND_CREDIT_POLICY | Approved |
+| QuickPersonalLoanPolicy.v1 | offer.validityDuration | Required | CD policy | Set expiry | CD | Internal | Duration; immutable | policy contract/store, safe audit | applicant surface | Version history | Offer lifecycle | PRODUCT_AND_CREDIT_POLICY | Approved |
+| QuickPersonalLoanPolicy.v1 | calculation.formulaVersions | Required | CD policy | Select formulas | CD | Internal | Immutable identifiers | policy contract/store, safe audit | applicant surface | Version history | Reproducibility | PRODUCT_AND_CREDIT_POLICY | Approved |
+| QuickPersonalLoanPolicy.v1 | calculation.roundingMode | Required | CD policy | Deterministic alternative math | CD | Internal | Named deterministic mode | policy contract/store, safe audit | applicant surface | Version history | Reproducibility | PRODUCT_AND_CREDIT_POLICY | Approved |
+| QuickPersonalLoanPolicy.v1 | reasonCodeCatalogVersion | Required | CD policy | Version internal trace codes | CD | Confidential | Identifier only; no applicant translation | policy contract/store, safe audit | applicant/UI/communications | Version history | Internal explainability | CREDIT_DECISIONING_DESIGN; Q-008 | Approved internal only |
+| QuickPersonalLoanPolicy.v1 | checksum | Required | CD publication process | Verify immutable content | CD | Restricted | Cryptographic digest | policy contract/store, safe audit | mutable client input | Version history | Integrity | CREDIT_DECISIONING_DESIGN | Approved |
+
+## 4. Explicitly prohibited data
+
+No initial contract may contain full names, addresses, email addresses, phone numbers, dates of birth, government identifiers, biometrics, document bytes, raw identity or income evidence, bank credentials, destination credentials, OTP values or protected representations, secrets/tokens, provider credentials, raw provider request/response bodies, unrestricted fraud signals, internal rule traces, stack traces, or unbounded metadata maps.
+
+## 5. Traceability matrix
+
+| Contract | Command/request or private fact | Mapping | Producer | Consumers | Rules/policy | Workflow | Decision scenario / security classification | Validation responsibility and evidence |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| StartCreditApplication | CMD-AP-001 | HTTP to private command | AP | Applicant client | BR-AP-001 | Loan A1 | Authorization; duplicate start | Positive, unauthorized, duplicate, malformed |
+| SubmitCreditApplication | CMD-AP-002 | HTTP to private command | AP | Applicant client | BR-AP-001 | Loan A2 | Consent; duplicate submit | Positive, missing consent, duplicate, malformed |
+| GetCreditApplicationStatus | AP private query | Private projection to HTTP | AP | Applicant client | BR-AP-002/ownership | Master journey | Cross-customer denial; Q-008 redaction | Stage/offer variants, authorization, no reason leakage |
+| AcceptCreditOffer | CMD-AP-003 | HTTP to private command | AP | Applicant client | BR-AP-006; P-005 | Credit offer acceptance | Exact offer/hash; expiry; duplicate | Valid, stale, mismatch, duplicate, unauthorized |
+| StandardProblem | Command/query rejection | Failure mapping | edge/owner | Applicant client | Security invariants | All HTTP | Technical failure is not credit outcome | RFC structure, sanitization, no stack/provider data |
+| CreditApplicationSubmitted.v1 | DE-AP-002 | Explicit allowlisted event mapping | AP | CI, Audit | BR-AP-001; BR-XS-002 | Loan A2 | No full PII/evidence | Serialize/consume, duplicate, unknown version |
+| CustomerIdentityVerified.v1 | DE-CI-004 | Explicit allowlisted event mapping | CI | AP, Audit | BR-CI-003/004 | Loan A3 | Provider-neutral; no evidence | Valid/expired, duplicate, unknown version |
+| CustomerIdentityRejected.v1 | DE-CI-005 | Explicit allowlisted event mapping | CI | AP; conditional Communications; Audit | BR-CI-003/004 | Loan alternate | Q-008 blocks applicant exposure | Internal trace, redaction, duplicate, unknown version |
+| CreditAssessmentRequested.v1 | CMD-CD-001 request intent | Request to private command after acceptance | AP | CD | POL-CD baseline | Credit trigger | No IE-ID; immutable snapshot; no raw evidence | Accept/reject, changed replay, duplicate, unsupported version |
+| CreditAssessmentPendingEvidence.v1 | DE-CD-002 disposition | Explicit allowlisted event mapping | CD | AP | BR-CD-002 | Credit alternate | Pending is not decline; Q-008 redaction | Pending evidence, duplicate, unsupported version |
+| CreditAssessmentPendingRetry.v1 | DE-CD-002 disposition | Explicit allowlisted event mapping | CD | AP | BR-CD-002 | Credit alternate | Timeout is not decline | Retry, duplicate, unsupported version |
+| CreditAssessmentOperationalExceptionRecorded.v1 | DE-CD-002 disposition | Explicit allowlisted event mapping | CD | AP, operations | BR-CD-002 | Credit recovery | Technical failure separation | Exception, recovery authorization, duplicate/version |
+| FavorableCreditDecisionRecorded.v1 | DE-CD-003 | Explicit allowlisted event mapping | CD | AP | BR-CD-001/003; Quick policy | Credit favorable | Ruleset/policy trace; no internal trace | Happy favorable, deterministic replay, duplicate/version |
+| UnfavorableCreditDecisionRecorded.v1 | DE-CD-003 | Explicit allowlisted event mapping | CD | AP | BR-CD-001/003; Quick policy | Credit unfavorable | Q-008 blocks exposure; no technical decline | Happy unfavorable, redaction, duplicate/version |
+| CreditOfferCreated.v1 | DE-CD-005 | Explicit allowlisted event mapping | CD | AP | BR-CD-004/005; Quick policy | Credit offer | Immutable terms/hash/expiry | Offer creation, hash integrity, duplicate/version |
+| QuickPersonalLoanPolicy.v1 | Versioned CD configuration | Configuration to private policy model | CD policy publication | CD | Product and Credit Policy | Credit evaluation | Fictitious; immutable; authorized publication | Structural, checksum, version, scenario and boundary tests |
+
+## 6. Credit Decisioning validation scenarios
+
+The future executable contracts must prove: a favorable decision with traceable `rulesetVersion` and offer; an unfavorable decision with internal traceable reason codes; `PendingEvidence`; `PendingRetry`; `OperationalException`; immutable offer creation; duplicate request/event handling; unsupported-version rejection/quarantine; and separation of malformed, provider, transport, and infrastructure failures from `Favorable` or `Unfavorable` outcomes. Applicant-facing reason evidence is excluded until `Q-008` is resolved.
+
+## 7. Q-004 resolution boundary
+
+`Q-004` is resolved on 2026-08-18 for the initial M1 contracts and fields in this catalog. The resolution does not authorize a field not listed here, sensitive raw data, a new consumer, or a new contract/version. Each such change requires its own allowlist review. The future contracts repository is therefore `Ready`, not created; no versioned contract is published; consumer implementation has not started; M1 remains `Defined`.
+
+## References
+
+- [Contracts Baseline](CONTRACTS_BASELINE.md)
+- [ADR-005](../adr/ADR-005-CONTRACT-GOVERNANCE.md)
+- [Domain Events](../domain/DOMAIN_EVENTS.md)
+- [Credit Decisioning Design](../domain/CREDIT_DECISIONING_DESIGN.md)
+- [Credit Decision Table](../domain/CREDIT_DECISION_TABLE.md)
+- [Security Model](../architecture/SECURITY_MODEL.md)
+- [Credit Decision Workflow](../workflows/CREDIT_DECISION.md)

@@ -8,7 +8,7 @@ The workflow is logical and hosting-independent. [ADR-003](../adr/ADR-003-EVENT-
 
 ## 2. Scope and non-goals
 
-In scope: application start through activated loan and application completion, capability ownership, logical reactions, alternate outcomes, recovery, correlation, and idempotency. Out of scope: the process-manager persistence schema, scheduler technology, executable schemas and field allowlists (`Q-004`), provider configuration, infrastructure, numeric retry/timer defaults, and production policy.
+In scope: application start through activated loan and application completion, capability ownership, logical reactions, alternate outcomes, recovery, correlation, and idempotency. Out of scope: the process-manager persistence schema, scheduler technology, executable schemas and field allowlists beyond the approved [initial M1 catalog](../contracts/INITIAL_CONTRACT_CATALOG.md), provider configuration, infrastructure, numeric retry/timer defaults, and production policy.
 
 The workflow is hosting-independent. `Local Zero AWS Cost` requires no AWS account or credentials and uses fictitious data, deterministic fakes, and owner-scoped adapters without bypassing boundaries. The ephemeral, Free-Tier-aware `AWS Demo` initially deploys only the approved walking skeleton and uses Cognito, EventBridge, consumer-specific SQS/DLQ, owner-scoped persistence, and optional protected S3 objects as defined by the [Container Architecture](../architecture/CONTAINER_DIAGRAM.md); it does not claim zero cost or production readiness. Both profiles preserve the same authorization, idempotency, retry, recovery, minimization, audit, retention, and verified-cleanup semantics.
 
@@ -88,8 +88,8 @@ The mandatory order is `Signed Package -> Loan Reservation (PendingDisbursement)
 | Condition | Detection owner | Permitted reaction | Forbidden shortcut | Retry / idempotency | Resulting state | Manual action | Status | Sources |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | Missing submission data/consent | AP / CI | Remain Draft and collect missing input | Infer consent or start identity | Repeated submission is safe | `Draft` | None | Confirmed | [BR-AP-001](../domain/BUSINESS_RULES.md#4-application-process-ap) |
-| Identity rejected | CI | Stop decisioning; expose safe reason | Convert to credit decline | Deduplicate fact; explicit new verification path | `IdentityRejected` | Authorized reopen only | Proposed | [IE-CI-002](../domain/DOMAIN_EVENTS.md#52-customer--identity-ci) |
-| Unfavorable decision | CD | AP closes with applicant-safe reason | Treat provider/transport failure as decline | New governed assessment for reevaluation | `CreditDeclined` | No silent analyst override | Confirmed | [Credit Decision](CREDIT_DECISION.md) |
+| Identity rejected | CI | Stop decisioning; retain traceable internal reasons; do not expose or translate them before `Q-008` | Convert to credit decline | Deduplicate fact; explicit new verification path | `IdentityRejected` | Authorized reopen only | Proposed | [IE-CI-002](../domain/DOMAIN_EVENTS.md#52-customer--identity-ci) |
+| Unfavorable decision | CD | AP closes the credit path while retaining traceable internal reasons; applicant explanation remains blocked by `Q-008` | Treat provider/transport failure as decline | New governed assessment for reevaluation | `CreditDeclined` | No silent analyst override | Confirmed | [Credit Decision](CREDIT_DECISION.md) |
 | Offer rejected/expired | AP / CD | Record explicit rejection or prevent expired acceptance | Mutate immutable offer or generate documents | Stable applicant action; clock fact idempotent | `OfferClosed` | Explicit reassessment/new-offer path | Proposed | [Alternate paths](../domain/EVENT_STORMING.md#9-alternate-and-recovery-paths) |
 | Authorized cancellation before signing | AP | `CreditApplicationCancelled` under `BR-AP-004` | Cancel after signing through same path | Unique cancellation operation | `CreditApplicationCancelled` | Later boundary needs separate governed workflow | Confirmed | [DE-AP-006](../domain/DOMAIN_EVENTS.md#41-application-process-ap) |
 | Document/signature problem | DP / CO / ES | Correction, reissue, or new envelope through owner | Overwrite package, reset challenge, manufacture signature | Preserve package/envelope/challenge identities | `DocumentsPending`, `SignaturePending`, or `SignatureBlocked` | Owner-controlled recovery | Derived | [Document Signing](DOCUMENT_SIGNING.md) |
@@ -118,14 +118,13 @@ Compensation is an explicit context-owned business command under `POL-XS-005 Com
 
 ## 12. Security and data minimization
 
-Apply the [Security Model](../architecture/SECURITY_MODEL.md): authorize every action at the owner boundary; use opaque IDs, protected-object references, hashes, tokenized destinations, masked notifications, and minimum immutable snapshots. Events/logs/traces/audit/DLQs prohibit plaintext OTP, credentials/tokens, raw evidence or destination credentials, document bytes, full PII, provider bodies, internal rule traces, and unrestricted fraud data. Audit is sanitized, asynchronous, and non-authoritative. `Q-004` remains the contract publication gate. AWS Demo retention and teardown are linked, not repeated here.
+Apply the [Security Model](../architecture/SECURITY_MODEL.md): authorize every action at the owner boundary; use opaque IDs, protected-object references, hashes, tokenized destinations, masked notifications, and minimum immutable snapshots. Events/logs/traces/audit/DLQs prohibit plaintext OTP, credentials/tokens, raw evidence or destination credentials, document bytes, full PII, provider bodies, internal rule traces, and unrestricted fraud data. Audit is sanitized, asynchronous, and non-authoritative. The [initial catalog](../contracts/INITIAL_CONTRACT_CATALOG.md) resolves `Q-004` only for its listed M1 fields; additions require a new review. AWS Demo retention and teardown are linked, not repeated here.
 
 ## 13. Open questions
 
-- `Q-004`: exact contract field allowlists.
 - `Q-006`: identity validity and renewal across reassessment.
 - `Q-007`: exact first-installment date and schedule rounding.
-- `Q-008`: applicant-safe reason-code allowlist/translation.
+- `Q-008`: applicant-facing reason-code exposure/translation.
 - `HS-006`: private event names for identity-provider unavailability and activation failure remain unapproved.
 
 See the [assumptions register](../discovery/ASSUMPTIONS.md#open-questions).
