@@ -18,7 +18,7 @@ The platform demonstrates a low-value unsecured personal-loan journey with progr
 
 **Implementation:** not started
 
-The contracts governance baseline is documented and the future contracts repository is `Ready` for a separately governed creation task. M1 remains `Defined`, no executable contract has been published, and implementation has not started.
+The [`loan-platform-contracts`](https://github.com/SamuelSerrano/loan-platform-contracts) repository has published the verified initial contract baseline as [`v0.1.0`](https://github.com/SamuelSerrano/loan-platform-contracts/releases/tag/v0.1.0). M1 is `Demonstrated` by 16 executable contracts, 175 governed field paths, and the sanitized validation evidence attached to that release. Service and infrastructure implementation has not started; M2 remains `Defined`.
 
 ## Sources of truth
 
@@ -78,7 +78,7 @@ This platform follows a multi-repository strategy. New repositories are created 
 
 Planned repositories include:
 
-- `loan-platform-contracts`
+- [`loan-platform-contracts`](https://github.com/SamuelSerrano/loan-platform-contracts) — M1 `Demonstrated` at [`v0.1.0`](https://github.com/SamuelSerrano/loan-platform-contracts/releases/tag/v0.1.0)
 - `loan-application-service`
 - `customer-identity-service`
 - `credit-decisioning-service`
@@ -93,7 +93,7 @@ Planned repositories include:
 ## Delivery sequence
 
 1. Apply the repository delivery roadmap and its creation gates.
-2. Create the contracts repository only through its approved gate; the documentary baseline does not publish executable contracts.
+2. Use the published M1 contract baseline and its release evidence without extending its approved 16-contract/175-field boundary.
 3. Create each implementation repository only after its gate is satisfied.
 4. Implement approved vertical slices with Spec-Driven Development and TDD.
 
