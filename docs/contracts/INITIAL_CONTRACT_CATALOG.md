@@ -6,7 +6,7 @@
 
 ## 1. Purpose and interpretation
 
-This catalog selects the minimum contracts for the first walking skeleton and approves their fields under `Q-004`. It is a documentary registry, not OpenAPI, AsyncAPI, JSON Schema, code, or evidence that a contract is published. Anything not listed is denied.
+This catalog selects the minimum contracts for the first walking skeleton and approves their fields under `Q-004`. It is the documentary authority for the allowlist, not OpenAPI, AsyncAPI, JSON Schema, or code; publication evidence is maintained by the separately governed contracts repository and release. Anything not listed is denied.
 
 The classifications are exactly `Public`, `Internal`, `Confidential`, `Restricted`, and `Restricted secret`. No initial field is approved as `Restricted secret`. `Service` means only owner-controlled service APIs/queues and encrypted stores; `edge` means the authenticated public API boundary; `applicant` means the authenticated owner view. Logs, traces, audit, analytics, and DLQs receive only fields explicitly permitted there. `Owner policy` means the retention of the authoritative owner described by the [Security Model](../architecture/SECURITY_MODEL.md); transport copies follow Inbox/Outbox/DLQ limits and verified deletion.
 
@@ -379,7 +379,7 @@ Together, the input matrix and this scenario matrix cover OP-001 through OP-006,
 
 ## 7. Q-004 resolution boundary
 
-`Q-004` is resolved on 2026-08-18 for the initial M1 contracts and fields in this catalog. The resolution does not authorize a field not listed here, sensitive raw data, a new consumer, or a new contract/version. Each such change requires its own allowlist review. The future contracts repository is therefore `Ready`, not created; no versioned contract is published; consumer implementation has not started; M1 remains `Defined`.
+`Q-004` is resolved on 2026-08-18 for the initial M1 contracts and fields in this catalog. The resolution does not authorize a field not listed here, sensitive raw data, a new consumer, or a new contract/version. Each such change requires its own allowlist review. PR [#1](https://github.com/SamuelSerrano/loan-platform-contracts/pull/1) materialized this boundary without changing its authority, and release [`v0.1.0`](https://github.com/SamuelSerrano/loan-platform-contracts/releases/tag/v0.1.0) publishes exactly 16 contracts and the 175 field paths cataloged here. The [sanitized validation report](https://github.com/SamuelSerrano/loan-platform-contracts/releases/download/v0.1.0/validation-report.json), [OpenAPI bundle](https://github.com/SamuelSerrano/loan-platform-contracts/releases/download/v0.1.0/openapi-bundle.yaml), and [SHA-256 checksums](https://github.com/SamuelSerrano/loan-platform-contracts/releases/download/v0.1.0/SHA256SUMS.txt) are tied to merge commit [`e922039`](https://github.com/SamuelSerrano/loan-platform-contracts/commit/e9220390054109f99b9ce62fa87570ea2be3092d). M1 is therefore `Demonstrated`; consumer service implementation has not started, M2 remains `Defined`, and `Q-001`, `Q-002`, `Q-006`, `Q-007`, and `Q-008` remain open.
 
 ## References
 
